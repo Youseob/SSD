@@ -125,9 +125,15 @@ class HERReplayBuffer(ReplayBuffer):
             if key not in self._dict: self._allocate(key, array)
             self._dict[key][self._count, :path_length] = array
         
-        ## add hindsight goal
+        ## add hindsight goal and reward
         if 'goals' not in self._dict: self._allocate('goals', array)
-        self._dict['goals'][self._count, :path_length] = atleast_2d(path['observations'])[-1]
+        idx=0
+        for i in range(path_length):
+            if (self._dict['infos/goal'][self._count, i] != self._dict['infos/goal'][self._count, i+1]).all():
+                self._dict['goals'][self._count, idx:i+1] = atleast_2d(path['observations'])[i]
+                self._dict['rewards'][self._count, i] = 1
+                idx = i+1
+        self._dict['goals'][self._count, idx:path_length] = atleast_2d(path['observations'])[-1]
         
         ## penalize early termination
         if path['terminals'].any() and self.termination_penalty is not None:

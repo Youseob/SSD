@@ -160,11 +160,11 @@ class DiffuserCritic(object):
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')
                 best_loss_q = loss_q_val
-                copy_nn_module(self.critic, self.best_critic)  
+                copy_nn_module(self.critic, self.critic_best)  
 
             # save
             if (self.step+1) % self.save_freq == 0:
-                label = self.step_ema
+                label = self.step
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
@@ -184,7 +184,7 @@ class DiffuserCritic(object):
         data = {
             'step': self.step,
             'ema': self.ema_model.state_dict(),
-            'critic': self.best_critic.state_dict(),
+            'critic': self.critic_best.state_dict(),
         }
         savepath = os.path.join(self.logdir, f'state_{epoch}.pt')
         torch.save(data, savepath)
