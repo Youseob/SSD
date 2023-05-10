@@ -1,4 +1,5 @@
 import json
+from d4rl import reverse_normalized_score, get_normalized_score
 
 import datasets
 from dc.dc import DiffuserCritic
@@ -6,8 +7,8 @@ import utils
 from utils.arrays import to_torch, to_np
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -17,7 +18,9 @@ class Parser(utils.Parser):
     cid: float = 0
 
 args = Parser().parse_args(iterparser)
+
 env = datasets.load_environment(args.dataset)
+env.seed(args.epi_seed)
 action_dim = env.action_space.shape[0]
 
 dataset = datasets.SequenceDataset(
@@ -31,15 +34,20 @@ dataset = datasets.SequenceDataset(
 )
 
 if 'maze2d' in args.dataset:
+    cond_dim = 2
     renderer = utils.Maze2dRenderer(env=args.dataset)
+elif 'Fetch' in args.dataset:
+    cond_dim = 3
+    renderer = utils.MuJoCoRenderer(env=args.dataset)
 else:
+    cond_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
 
 
 dc = DiffuserCritic(
     dataset=dataset,
     renderer=renderer,
-    cond_dim=2,
+    cond_dim=cond_dim,
     device=args.device,
     conditional=args.conditional,
     condition_dropout=args.condition_dropout,
@@ -67,12 +75,17 @@ dc.load(args.diffusion_epoch)
 
 state = env.reset()
 
-
-print('Resetting target')
-env.set_target()
-
-## set conditioning xy position to be the goal
-target = env._target
+if 'maze2d' in args.dataset:
+    print('Resetting target')
+    env.set_target()
+    ## set conditioning xy position to be the goal
+    target = env._target
+elif 'Fetch' in args.dataset:
+    ## set conditioning xyz position to be the goal
+    target = env.goal
+else:
+    ## set conditioning rtg to be the goal
+    target = reverse_normalized_score(args.dataset, args.target_rtg)
 
 total_reward = 0
 for t in range(env.max_episode_steps):
