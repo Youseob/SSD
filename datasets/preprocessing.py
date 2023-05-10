@@ -125,6 +125,50 @@ def her_maze2d_set_terminals(env):
 
     return _fn
 
+def fetch_dataset(env):
+    env = load_environment(env) if type(env) == str else env
+    threshold = 0.05
+    
+    def _fn(dataset):
+        xyz = dataset['ag'][:,:-1]
+        distances = np.linalg.norm(xyz-dataset['g'], axis=-1)
+        at_goal = distances < threshold
+        shape = dataset['u'].shape[:-1]
+        timeouts = np.zeros(shape)
+
+        ## timeout at time t iff
+        ##      at goal at time t and
+        ##      not at goal at time t + 1
+        timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
+        if env.reward_type == 'sparse':
+            rewards = -(~at_goal).astype(np.float32)
+        elif env.reward_type == 'very_sparse':
+            rewards = at_goal.astype(np.float32)
+        else:
+            rewards = -distances
+
+        timeout_steps = np.where(timeouts.reshape((np.prod(shape), -1)))[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f'[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | '
+            f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
+        )
+
+        dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
+        dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
+        dataset['actions'] = dataset['u'].reshape((np.prod(shape), -1))
+        dataset['rewards'] = rewards.reshape((np.prod(shape), -1))
+        dataset['timeouts'] = timeouts.reshape((np.prod(shape), -1))
+        dataset['goals'] = dataset['g'].reshape((np.prod(shape), -1))
+        dataset['terminals'] = np.zeros_like(dataset['timeouts']).astype(np.bool8)
+        del dataset['o']
+        del dataset['u']
+        del dataset['ag']
+        del dataset['g']
+        return dataset
+
+    return _fn
 #-------------------------- block-stacking --------------------------#
 
 def blocks_quat_to_euler(observations):

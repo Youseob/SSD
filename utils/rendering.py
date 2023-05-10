@@ -92,7 +92,13 @@ class MuJoCoRenderer:
             self.env = env
         ## - 1 because the envs in renderer are fully-observed
         ## @TODO : clean up
-        self.observation_dim = np.prod(self.env.observation_space.shape) - 1
+        if type(self.env.observation_space) == gym.spaces.dict.Dict:
+            self.observation_dim = np.prod(self.env.observation_space['observation'].shape) - 1
+        elif type(self.env.observation_space) == gym.spaces.box.Box:
+            self.observation_dim = np.prod(self.env.observation_space.shape) - 1
+        else:
+            NotImplementedError(type(self.env.observation_space))
+            
         self.action_dim = np.prod(self.env.action_space.shape)
         try:
             self.viewer = mjc.MjRenderContextOffscreen(self.env.sim)
@@ -349,6 +355,11 @@ class Maze2dRenderer(MazeRenderer):
         if conditions is not None:
             conditions /= scale
         return super().renders(observations, conditions, **kwargs)
+
+
+#-----------------------------------------------------------------------------#
+#----------------------------------- Fetch -----------------------------------#
+#-----------------------------------------------------------------------------#
 
 #-----------------------------------------------------------------------------#
 #---------------------------------- rollouts ---------------------------------#

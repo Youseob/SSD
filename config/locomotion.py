@@ -54,7 +54,8 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['logs'],
         'prefix': ['dc/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 

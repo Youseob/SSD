@@ -9,8 +9,8 @@ from datasets import SequenceDataset
 from dc.dc import DiffuserCritic
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'FetchReach-v1'
+    config: str = 'config.fetch'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -20,6 +20,17 @@ class Parser(utils.Parser):
     cid: float = 0
 
 args = Parser().parse_args(iterparser)
+
+
+if 'maze2d' in args.dataset:
+    cond_dim = 2
+    renderer = utils.Maze2dRenderer(env=args.dataset)
+elif 'Fetch' in args.dataset:
+    cond_dim = 3
+    renderer = utils.MuJoCoRenderer(env=args.dataset)
+else:
+    cond_dim = 1
+    renderer = utils.MuJoCoRenderer(env=args.dataset)
 
 dataset = SequenceDataset(
     env=args.dataset,
@@ -32,15 +43,10 @@ dataset = SequenceDataset(
     seed=args.seed,
 )
 
-if 'maze2d' in args.dataset:
-    renderer = utils.Maze2dRenderer(env=args.dataset)
-else:
-    renderer = utils.MuJoCoRenderer(env=args.dataset)
-
 dc = DiffuserCritic(
     dataset=dataset,
     renderer=renderer,
-    cond_dim=1,
+    cond_dim=cond_dim,
     device=args.device,
     conditional=args.conditional,
     condition_dropout=args.condition_dropout,

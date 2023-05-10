@@ -1,6 +1,8 @@
 from collections import namedtuple
 import numpy as np
 import torch
+import pickle
+import collections
 import pdb
 
 from .preprocessing import get_preprocess_fn
@@ -12,6 +14,41 @@ from .buffer import ReplayBuffer, HERReplayBuffer
 Batch = namedtuple('Batch', 'trajectories conditions')
 ValueBatch = namedtuple('ValueBatch', 'trajectories conditions values')
 
+def fetch_sequence_dataset(env, preprocess_fn):
+    name = str.split(env.name, '-')[0]
+    with open(f'/home/sykim/offline_gcrl_data/offline_data/expert/{name}/buffer.pkl', 'rb') as f:
+        dataset = pickle.load(f)
+    dataset = preprocess_fn(dataset)
+
+    N = dataset['rewards'].shape[0]
+    data_ = collections.defaultdict(list)
+
+    # The newer version of the dataset adds an explicit
+    # timeouts field. Keep old method for backwards compatability.
+    use_timeouts = 'timeouts' in dataset
+
+    episode_step = 0
+    for i in range(N):
+        done_bool = bool(dataset['terminals'][i])
+        if use_timeouts:
+            final_timestep = dataset['timeouts'][i]
+        else:
+            final_timestep = (episode_step == env._max_episode_steps - 1)
+
+        for k in dataset:
+            if 'metadata' in k: continue
+            data_[k].append(dataset[k][i])
+
+        if done_bool or final_timestep:
+            episode_step = 0
+            episode_data = {}
+            for k in data_:
+                episode_data[k] = np.array(data_[k])
+            yield episode_data
+            data_ = collections.defaultdict(list)
+
+        episode_step += 1
+        
 class SequenceDataset(torch.utils.data.Dataset):
 
     def __init__(self, env='hopper-medium-replay', horizon=1,
@@ -24,7 +61,11 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.max_path_length = max_path_length
         self.use_padding = use_padding
         self.seed = seed
-        itr = sequence_dataset(env, self.preprocess_fn)
+        
+        if 'Fetch' in env.name:
+            itr = fetch_sequence_dataset(env, self.preprocess_fn)
+        else:
+            itr = sequence_dataset(env, self.preprocess_fn)
 
         # fields = HERReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
         fields = ReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
@@ -40,7 +81,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.fields = fields
         self.n_episodes = fields.n_episodes
         self.path_lengths = fields.path_lengths
-        if hasattr(env, "_target"):
+        if hasattr(env, "_target") or hasattr(env, 'goal'):
             keys = ['observations', 'actions', 'next_observations', 'rewards', 'goals']
         else:
             keys = ['observations', 'actions', 'next_observations', 'rewards', 'rtgs']
@@ -95,7 +136,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         terminals = self.fields.terminals[path_ind, start]
 
         # conditions = self.get_conditions(observations)
-        if hasattr(self.env, "_target"):
+        if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
             conditions = self.fields.normed_goals[path_ind, start]
         else:
             conditions = self.fields.normed_rtgs[path_ind, start]
