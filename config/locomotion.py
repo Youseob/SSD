@@ -30,8 +30,8 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [256],
-        'n_diffusion_steps': [256],
+        'horizon': [32],
+        'n_diffusion_steps': [20],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
@@ -41,11 +41,10 @@ base = {
         ## dataset
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
-        'preprocess_fns': [['her_maze2d_set_terminals']],
-        # 'preprocess_fns': [['maze2d_set_terminals']],
+        'preprocess_fns': [[]],
         'use_padding': [False],
-        'max_path_length': [400],
-        'max_n_episodes': [100000],
+        'max_path_length': [1000],
+        'max_n_episodes': [10000],
         
         ## diffuser
         'conditional': [False],
@@ -152,31 +151,29 @@ base = {
 
 #------------------------ overrides ------------------------#
 
-'''
-    maze2d maze episode steps:
-        umaze: 150
-        medium: 250
-        large: 600
-'''
 
-maze2d_umaze_v1 = {
-    'diffusion': {
-        'horizon': [128],
-        'n_diffusion_steps': [64],
-    },
-    'evaluate': {
-        'horizon': [128],
-        'n_diffusion_steps': [64],
+hopper_medium_expert_v2 = {
+    'plan': {
+        'scale': 0.001,
+        't_stopgrad': 4,
     },
 }
 
-maze2d_large_v1 = {
+
+halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert_v2 = {
     'diffusion': {
-        'horizon': [384],
-        'n_diffusion_steps': [256],
+        'horizon': 4,
+        'dim_mults': (1, 4, 8),
+        'attention': True,
     },
-    'evaluate': {
-        'horizon': [384],
-        'n_diffusion_steps': [256],
+    'values': {
+        'horizon': 4,
+        'dim_mults': (1, 4, 8),
+    },
+    'plan': {
+        'horizon': 4,
+        # 'n_guide_steps': 1,
+        'scale': 0.001,
+        't_stopgrad': 4,
     },
 }

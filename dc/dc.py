@@ -141,7 +141,8 @@ class DiffuserCritic(object):
             loss_q2.backward()
             self.critic_optimizer2.step()
             
-            loss_q = torch.min(cql_loss_q1, cql_loss_q2)
+            # loss_q = torch.min(cql_loss_q1, cql_loss_q2)
+            loss_q = torch.min(loss_q1, loss_q2)
             
             ## Diffuser
             self.diffuser_optimizer.zero_grad()

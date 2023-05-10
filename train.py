@@ -9,8 +9,8 @@ from datasets import SequenceDataset
 from dc.dc import DiffuserCritic
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -40,7 +40,7 @@ else:
 dc = DiffuserCritic(
     dataset=dataset,
     renderer=renderer,
-    cond_dim=2,
+    cond_dim=1,
     device=args.device,
     conditional=args.conditional,
     condition_dropout=args.condition_dropout,

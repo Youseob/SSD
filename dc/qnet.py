@@ -8,7 +8,8 @@ from utils.helpers import soft_copy_nn_module
 from utils.arrays import to_np, to_torch
 
 class CQLCritic(nn.Module):
-    def __init__(self, state_dim, action_dim, cond_dim, normalizer, hidden_dim=256, gamma=0.95, min_q_weight=1.0, temp=1.0, n_random=10, max_q_backup=False):
+    def __init__(self, state_dim, action_dim, cond_dim, normalizer, hidden_dim=256, gamma=0.95, 
+                 min_q_weight=1.0, temp=1.0, n_random=10, max_q_backup=False):
         super(CQLCritic, self).__init__()
         self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim, hidden_dim),
                                       nn.Mish(),
@@ -63,6 +64,10 @@ class CQLCritic(nn.Module):
         self.obsact_dim = state_dim + action_dim
         
         self.normalizer = normalizer
+        if 'goals' in self.normalizer.normalizers:
+            self.goal_key = 'goals'
+        elif 'rtgs' in self.normalizer.normalizers:
+            self.goal_key = 'rtgs'
         
     def forward(self, state, action, goal):
         x = torch.cat([state, action], dim=-1)
@@ -103,14 +108,14 @@ class CQLCritic(nn.Module):
         r = self.unnorm(r, 'rewards')
         r_new = self.unnorm(r_new, 'rewards')
         
-        pred_q1, pred_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(a, 'actions'), self.unnorm(goal, 'goals'))
+        pred_q1, pred_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(a, 'actions'), self.unnorm(goal, self.goal_key))
         pred_q = torch.min(pred_q1, pred_q2)
         if self.max_q_backup:
             # data
             ns_rpt = torch.repeat_interleave(ns, repeats=10, dim=0)
             na_rpt, *_ = self._normalized_transition(ema_model(ns_rpt, goal))
             pred_targ_q1, pred_targ_q2 = self.forward_target(
-                self.unnorm(ns_rpt, 'observations'), self.unnorm(na_rpt, 'actions'), self.unnorm(goal, 'goals')
+                self.unnorm(ns_rpt, 'observations'), self.unnorm(na_rpt, 'actions'), self.unnorm(goal, self.goal_key)
                 )
             targ_q1 = pred_targ_q1.view(batch_size, 10).max(dim=1, keepdim=True)[0]
             targ_q2 = pred_targ_q2.view(batch_size, 10).max(dim=1, keepdim=True)[0]
@@ -120,7 +125,7 @@ class CQLCritic(nn.Module):
             ns_rpt_new = torch.repeat_interleave(ns_new, repeats=10, dim=0)
             na_rpt_new , *_ = self._normalized_transition(ema_model(ns_rpt_new, goal))
             pred_targ_q1_new, pred_targ_q2_new = self.forward_target(
-                self.unnorm(ns_rpt_new, 'observations'), self.unnorm(na_rpt_new, 'actions'), self.unnorm(goal, 'goals')
+                self.unnorm(ns_rpt_new, 'observations'), self.unnorm(na_rpt_new, 'actions'), self.unnorm(goal, self.goal_key)
                 )
             targ_q1_new = pred_targ_q1_new.view(batch_size, 10).max(dim=1, keepdim=True)[0]
             targ_q2_new = pred_targ_q2_new.view(batch_size, 10).max(dim=1, keepdim=True)[0]
@@ -129,15 +134,15 @@ class CQLCritic(nn.Module):
             # data
             na, *_ = self._normalized_transition(ema_model(ns, goal))
             pred_targ_q1, pred_targ_q2 = self.forward_target(
-                self.unnorm(ns, 'observations'), self.unnorm(na, 'actions'), self.unnorm(goal, 'goals')
+                self.unnorm(ns, 'observations'), self.unnorm(na, 'actions'), self.unnorm(goal, self.goal_key)
                 )
             pred_targ_q = torch.min(pred_targ_q1, pred_targ_q2)
 
             # sample
             # ns_unrm_new = to_torch(self.normalizer.unnormalize(to_np(ns_new), 'observations'))
             na_new, *_ = self._normalized_transition(ema_model(ns_new, goal))
-            curr_q1, curr_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(a_new, 'actions'), self.unnorm(goal, 'goals'))
-            targ_q1, targ_q2 = self.forward_target(self.unnorm(ns_new, 'observations'), self.unnorm(na_new, 'actions'), self.unnorm(goal, 'goals'))
+            curr_q1, curr_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(a_new, 'actions'), self.unnorm(goal, self.goal_key))
+            targ_q1, targ_q2 = self.forward_target(self.unnorm(ns_new, 'observations'), self.unnorm(na_new, 'actions'), self.unnorm(goal, self.goal_key))
             targ_q_new = torch.min(targ_q1, targ_q2)     
 
         r = r.reshape(list(r.shape) + [1])
@@ -156,10 +161,10 @@ class CQLCritic(nn.Module):
         random_actions = to_torch(random_actions).to('cuda')
         s_new_temp = einops.repeat(s, 'b d -> b n d', n=self.n_random)
         goal_temp = einops.repeat(goal, 'b d -> b n d', n=self.n_random)
-        rand_q1, rand_q2 = self.forward(self.unnorm(s_new_temp, 'observations'), random_actions, self.unnorm(goal_temp, 'goals'))
+        rand_q1, rand_q2 = self.forward(self.unnorm(s_new_temp, 'observations'), random_actions, self.unnorm(goal_temp, self.goal_key))
         
         # next
-        next_q1, next_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(na_new, 'actions'), self.unnorm(goal, 'goals'))
+        next_q1, next_q2 = self.forward(self.unnorm(s, 'observations'), self.unnorm(na_new, 'actions'), self.unnorm(goal, self.goal_key))
         
         # aggregate
         cat_q1 = torch.cat(
