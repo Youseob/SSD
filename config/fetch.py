@@ -105,7 +105,8 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
         'prefix': ['eval/release'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],

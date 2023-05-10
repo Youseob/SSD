@@ -85,7 +85,7 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [1.0, 1.2, 1.4],
+        'target_rtg': [1.5, 1.2, 1.4],
         'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
@@ -105,21 +105,22 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
         'prefix': ['eval/release'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [128], #None,
-        'n_diffusion_steps': [64],
-        'maxq': [False],
+        'horizon': [32], #None,
+        'n_diffusion_steps': [20],
+        'maxq': [True],
         'conditional': [False],
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],
-        'diffusion_epoch': [19999],
+        'diffusion_epoch': [39999],
 
         'verbose': [False],
         'suffix': ['0'],

@@ -86,10 +86,10 @@ elif 'Fetch' in args.dataset:
 else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
+    target = dataset.normalizer(target, 'rtgs')
 
 total_reward = 0
 for t in range(env.max_episode_steps):
-    state = env.state_vector().copy()
     samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
     action = to_np(samples)[0, :action_dim]
     
