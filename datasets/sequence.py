@@ -26,7 +26,8 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.seed = seed
         itr = sequence_dataset(env, self.preprocess_fn)
 
-        fields = HERReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
+        # fields = HERReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
+        fields = ReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
         for i, episode in enumerate(itr):
             fields.add_path(episode)
         fields.finalize()

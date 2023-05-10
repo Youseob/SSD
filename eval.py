@@ -1,17 +1,14 @@
-import argparse
-import gym
-import numpy as np
-import os
-import wandb
+import json
 
-import utils
-from datasets import SequenceDataset
+import datasets
 from dc.dc import DiffuserCritic
+import utils
+from utils.arrays import to_torch, to_np
 
 class IterParser(utils.HparamEnv):
     dataset: str = 'maze2d-umaze-v1'
     config: str = 'config.maze2d'
-    experiment: str = 'diffusion'
+    experiment: str = 'evaluate'
 
 iterparser = IterParser()
 
@@ -20,14 +17,15 @@ class Parser(utils.Parser):
     cid: float = 0
 
 args = Parser().parse_args(iterparser)
+env = datasets.load_environment(args.dataset)
+action_dim = env.action_space.shape[0]
 
-dataset = SequenceDataset(
+dataset = datasets.SequenceDataset(
     env=args.dataset,
     horizon=1,
     normalizer=args.normalizer,
     preprocess_fns=args.preprocess_fns,
     max_path_length=args.max_path_length,
-    max_n_episodes=args.max_n_episodes,
     use_padding=args.use_padding,
     seed=args.seed,
 )
@@ -36,6 +34,7 @@ if 'maze2d' in args.dataset:
     renderer = utils.Maze2dRenderer(env=args.dataset)
 else:
     renderer = utils.MuJoCoRenderer(env=args.dataset)
+
 
 dc = DiffuserCritic(
     dataset=dataset,
@@ -57,37 +56,46 @@ dc = DiffuserCritic(
     gradient_accumulate_every=args.gradient_accumulate_every,
     lr=args.lr,
     logdir=f'{args.logbase}/{args.dataset}/{args.exp_name}',
+    diffusion_loadpath=f'{args.logbase}/{args.dataset}/{args.diffusion_loadpath}',
     log_freq=args.log_freq,
     save_freq=int(args.n_train_steps // args.n_saves),
     label_freq=int(args.n_train_steps // args.n_saves),
     wandb=args.wandb,
 )
 
-if args.wandb:
-    print('Wandb init...')
-    wandb_dir = '/tmp/sykim/wandb'
-    os.makedirs(wandb_dir, exist_ok=True)
-    wandb.init(project=args.prefix.replace('/', '-'),
-               entity='sungyoon',
-               config=args,
-               dir=wandb_dir,
-               )
-    wandb.run.name = f"{args.dataset}"
-    
-utils.report_parameters(dc.diffuser)
-utils.report_parameters(dc.critic)
-# utils.setup_dist()
+dc.load(args.diffusion_epoch)
 
-print('Testing forward...', end=' ', flush=True)
-batch = utils.batchify(dataset[0])
-loss = dc.diffuser.loss(*batch)
-loss.backward()
-print('✓')
+state = env.reset()
 
-n_epochs = int(args.n_train_steps // args.n_steps_per_epoch)
-for i in range(n_epochs):
-    print(f'Epoch {i} / {n_epochs} | {args.savepath}')
-    dc.train(n_train_steps=args.n_steps_per_epoch)
+
+print('Resetting target')
+env.set_target()
+
+## set conditioning xy position to be the goal
+target = env._target
+
+total_reward = 0
+for t in range(env.max_episode_steps):
+    state = env.state_vector().copy()
+    samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
+    action = to_np(samples)[0, :action_dim]
     
-if args.wandb:
-    wandb.finish()
+    next_state, reward, done, _ = env.step(action)
+    total_reward += reward
+    score = env.get_normalized_score(total_reward)
+    print(
+        f't: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | '
+        f'{action}'
+    )
+
+    if 'maze2d' in args.dataset:
+        xy = next_state[:2]
+        goal = env.unwrapped._target
+        print(
+            f'maze | pos: {xy} | goal: {goal}'
+        )
+    
+    if done:
+        break
+    state = next_state
+    

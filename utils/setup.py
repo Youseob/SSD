@@ -8,8 +8,10 @@ from tap import Tap
 import pdb
 from itertools import product
 from collections import namedtuple
+import json
+import copy
 
-from .serialization import mkdir
+from utils.serialization import mkdir
 from .git_utils import (
     get_git_rev,
     save_git_diff,
@@ -109,10 +111,26 @@ class Parser(Tap):
         self.set_seed(args)
         self.get_commit(args)
         self.set_loadbase(args)
+        self.load_json(args)
         self.generate_exp_name(args)
         self.mkdir(args)
         self.save_diff(args)
         return args
+    
+    def load_json(self, args):
+        if 'diffusion_loadpath' in args._dict:
+            print(f'[ utils/setup ] Loading train-time config from {args.loadbase}/{args.dataset}/{args.diffusion_loadpath}/args.json')
+            with open(f'{args.loadbase}/{args.dataset}/{args.diffusion_loadpath}/args.json', 'r') as file:
+                json_dict = json.load(file)
+                
+            # delete overlapped elements
+            keys = [*json_dict]
+            for key in keys:
+                if key not in self._log_all():
+                    setattr(args, key, json_dict[key])
+                    self._dict[key] = json_dict[key]
+
+        
     
     def sync_config(self, args, hparam_combs):
         # setattr(args, 'config', hparam_combs[args.pid])

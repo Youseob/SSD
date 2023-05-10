@@ -10,6 +10,8 @@ diffusion_args_to_watch = [
     ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
+    ('maxq', 'maxq'),
+    ('conditional', 'cond'),
 ]
 
 
@@ -18,36 +20,32 @@ eval_args_to_watch = [
     ##
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('discount', 'd'),
-    # ('normalizer', ''),
     ('batch_size', 'b'),
     ##
     ('conditional', 'cond'),
+    ('epi_seed', 's'),
 ]
 
 base = {
 
     'diffusion': {
         ## model
-        'model': ['models.TemporalUnet'],
-        'diffusion': ['models.GaussianDiffusion'],
         'horizon': [256],
         'n_diffusion_steps': [256],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
-        'dim_mults': [(1, 4, 8)],
-        'renderer': ['utils.Maze2dRenderer'],
         'calc_energy': [False],
 
         ## dataset
-        'loader': ['datasets.GoalDataset'],
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
-        'preprocess_fns': [['maze2d_set_terminals']],
+        'preprocess_fns': [['her_maze2d_set_terminals']],
+        # 'preprocess_fns': [['maze2d_set_terminals']],
         'use_padding': [False],
-        'max_path_length': [40000],
+        'max_path_length': [400],
+        'max_n_episodes': [100000],
         
         ## diffuser
         'conditional': [False],
@@ -63,7 +61,7 @@ base = {
 
         ## training
         'seed': [0],
-        'maxq': [True, False],
+        'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
@@ -88,14 +86,13 @@ base = {
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
         'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
-        # 'target_reward': [15.0],
         'decreasing_target_rtg': [True],
-        'policy': ['sampling.DDPolicyV2'],
+        # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'preprocess_fns': [[]],
+        # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'seed': [0, 1, 2, 3, 4], 
+        'epi_seed': [0, 1, 2, 3, 4], 
         'wandb': [True],
 
         ## sample_kwargs
@@ -114,22 +111,15 @@ base = {
         'vis_freq': [10],
         'max_render': [8],
 
-        'conditional': [False],
-        
         ## diffusion model
-        'horizon': [256], #None,
-        'n_diffusion_steps': [256],
-        'normalizer': ['LimitsNormalizer'],
-
-        ## value function
-        'discount': [0.997],
+        'horizon': [128], #None,
+        'n_diffusion_steps': [64],
+        'maxq': [False],
+        'conditional': [False],
 
         ## loading
-        'diffusion_loadpath': ['f:diffusion/H{horizon}_T{n_diffusion_steps}'],
-        # 'value_loadpath': 'f:values/defaults_H{horizon}_T{n_diffusion_steps}_d{discount}',
-
-        'diffusion_epoch': ['latest'],
-        'value_epoch': ['latest'],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],
+        'diffusion_epoch': [19999],
 
         'verbose': [False],
         'suffix': ['0'],

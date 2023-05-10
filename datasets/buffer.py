@@ -8,6 +8,7 @@ def atleast_2d(x):
 
 def discount_cumsum(x, gamma=1.):
     discount_cumsum = np.zeros_like(x)
+    if len(x) == 0: return discount_cumsum
     discount_cumsum[-1] = x[-1]
     for t in reversed(range(x.shape[0]-1)):
         discount_cumsum[t] = x[t] + gamma * discount_cumsum[t+1]
@@ -83,6 +84,11 @@ class ReplayBuffer:
             if key not in self._dict: self._allocate(key, array)
             self._dict[key][self._count, :path_length] = array
 
+        ## add hindsight goal and reward
+        # array = atleast_2d(path['infos/goal'])
+        # if 'goals' not in self._dict: self._allocate('goals', array)
+        # self._dict['goals'][self._count, :path_length] = array
+        
         ## penalize early termination
         if path['terminals'].any() and self.termination_penalty is not None:
             assert not path['timeouts'].any(), 'Penalized a timeout episode for early termination'
@@ -106,7 +112,7 @@ class ReplayBuffer:
 
     def finalize(self):
         ## remove extra slots
-        for key in self.keys + ['path_lengths', 'rtgs', 'goals']:
+        for key in self.keys + ['path_lengths', 'rtgs']:
             self._dict[key] = self._dict[key][:self._count]
         self._add_attributes()
         print(f'[ datasets/buffer ] Finalized replay buffer | {self._count} episodes')
@@ -117,6 +123,9 @@ class HERReplayBuffer(ReplayBuffer):
     def add_path(self, path):
         path_length = len(path['observations'])
         assert path_length <= self.max_path_length
+        if path_length == 0: 
+            self._count += 1
+            return
         
         self._add_keys(path)
         
@@ -126,14 +135,16 @@ class HERReplayBuffer(ReplayBuffer):
             self._dict[key][self._count, :path_length] = array
         
         ## add hindsight goal and reward
-        if 'goals' not in self._dict: self._allocate('goals', array)
+        array = atleast_2d(path['observations'])
+        if 'goals' not in self._dict: self._allocate('goals', atleast_2d(path['infos/goal']))
         idx=0
         for i in range(path_length):
             if (self._dict['infos/goal'][self._count, i] != self._dict['infos/goal'][self._count, i+1]).all():
-                self._dict['goals'][self._count, idx:i+1] = atleast_2d(path['observations'])[i]
+                self._dict['goals'][self._count, idx:i+1] = array[i, :2]
                 self._dict['rewards'][self._count, i] = 1
                 idx = i+1
-        self._dict['goals'][self._count, idx:path_length] = atleast_2d(path['observations'])[-1]
+            if i+1 == path_length:
+                self._dict['goals'][self._count, idx:path_length] = array[-1, :2]
         
         ## penalize early termination
         if path['terminals'].any() and self.termination_penalty is not None:

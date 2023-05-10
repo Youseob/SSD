@@ -44,6 +44,8 @@ class DiffuserCritic(object):
                  train_batch_size=32,
                  gradient_accumulate_every=5,
                  lr=3e-4,
+                 logdir='./logs',
+                 diffusion_loadpath='./logs',
                  log_freq=1000,
                  save_freq=10000,
                  sample_freq=1000,
@@ -68,11 +70,17 @@ class DiffuserCritic(object):
         self.ema_model = copy.deepcopy(self.diffuser)
         self.update_ema_every = update_ema_every
         
-        self.critic = CQLCritic(state_dim, action_dim).to(device)
+        self.critic = CQLCritic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
         self.critic_best = copy.deepcopy(self.critic)
         self.critic_target = copy.deepcopy(self.critic)
-        self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
-        self.critic_optimizer2 = torch.optim.Adam(self.critic.qf2.parameters(), lr=lr)
+        self.critic_optimizer1 = torch.optim.Adam([{'params': self.critic.qf1.parameters()},
+                                                   {'params': self.critic.final_layer1.parameters()}, 
+                                                   {'params': self.critic.goal_layer1.parameters()}], 
+                                                  lr=lr)
+        self.critic_optimizer2 = torch.optim.Adam([{'params': self.critic.qf2.parameters()},
+                                                   {'params': self.critic.final_layer2.parameters()}, 
+                                                   {'params': self.critic.goal_layer2.parameters()}], 
+                                                  lr=lr)
         
         self.dataset = dataset
         datalen = len(dataset)
@@ -101,6 +109,8 @@ class DiffuserCritic(object):
         self.alpha = alpha
 
         self.renderer = renderer
+        self.logdir = logdir
+        self.diffusion_loadpath = diffusion_loadpath
         self.log_freq = log_freq
         self.save_freq = save_freq
         self.wandb = wandb
@@ -122,11 +132,13 @@ class DiffuserCritic(object):
             cql_loss_q1, cql_loss_q2, loss_q1, loss_q2, q = self.critic.loss(*batch, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
-            cql_loss_q1.backward()
+            # cql_loss_q1.backward()
+            loss_q1.backward()
             self.critic_optimizer1.step()
             
             self.critic_optimizer2.zero_grad()
-            cql_loss_q2.backward()
+            # cql_loss_q2.backward()
+            loss_q2.backward()
             self.critic_optimizer2.step()
             
             loss_q = torch.min(cql_loss_q1, cql_loss_q2)
@@ -156,7 +168,8 @@ class DiffuserCritic(object):
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
                 cql_loss_q1_val, cql_loss_q2_val, loss_q1_val, loss_q2_val, _ = self.critic.loss(*batch_val, self.ema_model)
-            loss_q_val = torch.min(cql_loss_q1_val, cql_loss_q2_val)
+            # loss_q_val = torch.min(cql_loss_q1_val, cql_loss_q2_val)
+            loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')
                 best_loss_q = loss_q_val
@@ -194,9 +207,8 @@ class DiffuserCritic(object):
         '''
             loads model and ema from disk
         '''
-        loadpath = os.path.join(self.logdir, f'state_{epoch}.pt')
+        loadpath = os.path.join(self.diffusion_loadpath, f'state_{epoch}.pt')
         data = torch.load(loadpath)
-        
         self.step = data['step']
         self.ema_model.load_state_dict(data['ema'])
         self.critic.load_state_dict(data['critic'])

@@ -66,6 +66,8 @@ def maze2d_set_terminals(env):
         distances = np.linalg.norm(xy - goal, axis=-1)
         at_goal = distances < threshold
         timeouts = np.zeros_like(dataset['timeouts'])
+        goals = np.zeros_like(dataset['infos/goal'])
+        goals[:] = goal
 
         ## timeout at time t iff
         ##      at goal at time t and
@@ -81,10 +83,47 @@ def maze2d_set_terminals(env):
         )
 
         dataset['timeouts'] = timeouts
+        dataset['goals'] = dataset['infos/goal']
         return dataset
 
     return _fn
 
+def her_maze2d_set_terminals(env):
+    env = load_environment(env) if type(env) == str else env
+    threshold = 0.5
+
+    def _fn(dataset):
+        her_goal = np.zeros_like(dataset['infos/goal'])
+        start = 0
+        for end in np.where(dataset['timeouts'])[0]:
+            her_goal[start:end+1] = dataset['observations'][end, :2]
+            start = end+1
+        
+        xy = dataset['observations'][:,:2]
+        distances = np.linalg.norm(xy - her_goal, axis=-1)
+        at_goal = distances < threshold
+        timeouts = np.zeros_like(dataset['timeouts'])
+
+        ## timeout at time t iff
+        ##      at goal at time t and
+        ##      not at goal at time t + 1
+        timeouts[:-1] = at_goal[:-1] * ~at_goal[1:]
+        rewards = at_goal.astype(int)
+
+        timeout_steps = np.where(timeouts)[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f'[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | '
+            f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
+        )
+
+        dataset['timeouts'] = timeouts
+        dataset['goals'] = her_goal
+        dataset['rewards'] = rewards
+        return dataset
+
+    return _fn
 
 #-------------------------- block-stacking --------------------------#
 
