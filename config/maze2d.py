@@ -31,7 +31,7 @@ base = {
     'diffusion': {
         ## model
         'horizon': [1],
-        'n_diffusion_steps': [128],
+        'n_diffusion_steps': [20],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
@@ -57,7 +57,7 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc1/'],
+        'prefix': ['dc/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training

@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [32],
+        'horizon': [1],
         'n_diffusion_steps': [20],
         'action_weight': [1],
         'loss_weights': [None],
@@ -66,7 +66,7 @@ base = {
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],
-        'warmup_steps': [4e5],
+        'warmup_steps': [4e4],
         'batch_size': [32],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
