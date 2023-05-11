@@ -10,8 +10,8 @@ import utils
 from utils.arrays import to_torch, to_np
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -108,9 +108,13 @@ rollout = []
 for t in range(env.max_episode_steps):
     samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
     action = to_np(samples)[0, :action_dim]
-    rollout.append(np.expand_dims(state, axis=1))
+    rollout.append(state[None, ])
         
     next_state, reward, done, _ = env.step(action)
+    if 'maze2d' not in args.dataset and 'Fetch' not in args.dataset:
+        target = dataset.normalizer.unnormalize(target, 'rtgs')
+        target -= reward
+        target = dataset.normalizer(target, 'rtgs')
     total_reward += reward
     score = env.get_normalized_score(total_reward)
     print(
@@ -134,8 +138,8 @@ for t in range(env.max_episode_steps):
     if done:
         break
     state = next_state
-    
-rollout = dataset.normalizer.unnormalize(to_np(rollout), 'observations')
+
+rollout = np.stack(rollout, axis=1)
 dc.render_samples(rollout, args.epi_seed)
 
 if args.wandb:
