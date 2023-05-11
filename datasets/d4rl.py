@@ -94,8 +94,8 @@ def sequence_dataset(env, preprocess_fn):
             episode_data = {}
             for k in data_:
                 episode_data[k] = np.array(data_[k])
-            if 'maze2d' in env.name:
-                episode_data = process_maze2d_episode(episode_data)
+            # if 'maze2d' in env.name:
+            #     episode_data = process_maze2d_episode(episode_data)
             yield episode_data
             data_ = collections.defaultdict(list)
 

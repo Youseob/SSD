@@ -307,7 +307,7 @@ class MazeRenderer:
         img = plot2img(fig, remove_margins=self._remove_margins)
         return img
 
-    def composite(self, savepath, paths, ncol=5, **kwargs):
+    def composite(self, savepath, paths, ncol=1, **kwargs):
         '''
             savepath : str
             observations : [ n_paths x horizon x 2 ]

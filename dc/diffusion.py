@@ -220,7 +220,7 @@ class GaussianDiffusion(nn.Module):
             t = torch.tensor(t, dtype=torch.float, requires_grad=True)
             cond.requires_grad = True
             noise.requires_grad = True
-            
+        
         x_recon = self.model(x_noisy, t, state, cond)
         if self.clip_denoised:
             x_recon.clamp_(-1., 1.)

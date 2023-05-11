@@ -84,11 +84,12 @@ class MLP(nn.Module):
                 cond_embed = mask*cond_embed
             if force_dropout:
                 cond_embed = 0*cond_embed
-        else:
-            cond_embed = goal
             
-        t = self.time_mlp(time)
-        x = torch.cat([x, t, state, cond_embed], dim=1)
+            t = self.time_mlp(time)
+            x = torch.cat([x, t, state, cond_embed], dim=1)
+        else:
+            t = self.time_mlp(time)
+            x = torch.cat([x, t, state], dim=1)
         x = self.mid_layer(x)
         
         return self.final_layer(x)

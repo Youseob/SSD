@@ -20,7 +20,6 @@ eval_args_to_watch = [
     ##
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('batch_size', 'b'),
     ##
     ('conditional', 'cond'),
     ('epi_seed', 's'),
@@ -44,11 +43,11 @@ base = {
         'preprocess_fns': [['her_maze2d_set_terminals']],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'use_padding': [False],
-        'max_path_length': [400],
+        'max_path_length': [240],
         'max_n_episodes': [100000],
         
         ## diffuser
-        'conditional': [False],
+        'conditional': [True],
         'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         'beta_schedule': ['cosine'],
@@ -115,7 +114,7 @@ base = {
 
         ## diffusion model
         'horizon': [1], #None,
-        'n_diffusion_steps': [128],
+        'n_diffusion_steps': [20],
         'maxq': [False],
         'conditional': [False],
 

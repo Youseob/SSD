@@ -5,13 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import wandb
+import einops
 
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
 from .model import MLP
 from .diffusion import GaussianDiffusion
-from .qnet import CQLCritic
+from .qnet import CQLCritic, Critic
 
 def cycle(dl):
     while True:
@@ -70,7 +71,8 @@ class DiffuserCritic(object):
         self.ema_model = copy.deepcopy(self.diffuser)
         self.update_ema_every = update_ema_every
         
-        self.critic = CQLCritic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
+        # self.critic = CQLCritic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
+        self.critic = Critic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
         self.critic_best = copy.deepcopy(self.critic)
         self.critic_target = copy.deepcopy(self.critic)
         self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
@@ -131,7 +133,7 @@ class DiffuserCritic(object):
             ## Critic
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            cql_loss_q1, cql_loss_q2, loss_q1, loss_q2, q = self.critic.loss(*batch, self.ema_model)
+            loss_q1, loss_q2, q = self.critic.loss(*batch, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
             # cql_loss_q1.backward()
@@ -147,16 +149,29 @@ class DiffuserCritic(object):
             loss_q = torch.min(loss_q1, loss_q2)
             
             ## Diffuser
+            
             self.diffuser_optimizer.zero_grad()
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
-                
                 loss_d = self.diffuser.loss(*batch)
                 if self.step < self.warmup_steps:
                     loss_tot = loss_d
-                else: loss_tot = (1.-self.maxq) * loss_d - self.alpha * q.mean()
-                loss_d.backward()
+                else:
+                    s = batch.trajectories[:, :self.observation_dim]
+                    cond = batch.conditions
+                    _, stacks = self.diffuser(s, cond, return_diffusion=True)
+                    diffusion_a = einops.rearrange(stacks[:,:,:2], 'b n d -> (b n) d')
+                    diffusion_s = einops.repeat(s, 'b d -> (repeat b) d', repeat=stacks.shape[1])
+                    diffusion_c = einops.repeat(cond, 'b d -> (repeat b) d', repeat=stacks.shape[1])
+                    diffusion_q = self.critic.q_min(
+                        self.critic.unnorm(diffusion_s, 'observations'), self.critic.unnorm(diffusion_a, 'actions'), self.critic.unnorm(diffusion_c, self.critic.goal_key)
+                        )
+                    t = np.array([np.arange(stacks.shape[1]) for _ in range(stacks.shape[0])]).flatten()
+                    weight = minuscosine(t, stacks.shape[1])
+                    diffusion_q = to_torch(weight[:,None]) * diffusion_q 
+                    loss_tot = (1.-self.maxq) * loss_d - self.alpha * q.mean() + diffusion_q
+                loss_tot.backward()
             self.diffuser_optimizer.step()
             
             if self.step % self.update_ema_every == 0:
@@ -172,7 +187,7 @@ class DiffuserCritic(object):
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                cql_loss_q1_val, cql_loss_q2_val, loss_q1_val, loss_q2_val, _ = self.critic.loss(*batch_val, self.ema_model)
+                loss_q1_val, loss_q2_val, _ = self.critic.loss(*batch_val, self.ema_model)
             # loss_q_val = torch.min(cql_loss_q1_val, cql_loss_q2_val)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
