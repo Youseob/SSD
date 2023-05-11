@@ -217,3 +217,13 @@ class DiffuserCritic(object):
         self.step = data['step']
         self.ema_model.load_state_dict(data['ema'])
         self.critic.load_state_dict(data['critic'])
+
+
+    def render_samples(self, rollout, trial):
+        '''
+            renders samples from (ema) diffusion model
+        '''
+        rollout = self.dataset.normalizer.unnormalize(to_np(rollout), 'observations')
+
+        savepath = os.path.join(self.logdir, f'sample-{self.step}-{trial}.png')
+        self.renderer.composite(savepath, rollout)
