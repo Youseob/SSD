@@ -1,4 +1,6 @@
 import json
+import wandb
+import os
 from d4rl import reverse_normalized_score, get_normalized_score
 
 import datasets
@@ -88,6 +90,17 @@ else:
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
 
+if args.wandb:
+    print('Wandb init...')
+    wandb_dir = '/tmp/sykim/wandb'
+    os.makedirs(wandb_dir, exist_ok=True)
+    wandb.init(project=args.prefix.replace('/', '-'),
+               entity='sungyoon',
+               config=args,
+               dir=wandb_dir,
+               )
+    wandb.run.name = f"{args.dataset}"
+    
 total_reward = 0
 for t in range(env.max_episode_steps):
     samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
@@ -100,6 +113,12 @@ for t in range(env.max_episode_steps):
         f't: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | '
         f'{action}'
     )
+    if args.wandb:
+        wandb.log({
+            "reward": reward,
+            "total_reward": total_reward,
+            "score": score,
+        }, step = t)
 
     if 'maze2d' in args.dataset:
         xy = next_state[:2]
@@ -111,4 +130,6 @@ for t in range(env.max_episode_steps):
     if done:
         break
     state = next_state
-    
+
+if args.wandb:
+    wandb.finish()

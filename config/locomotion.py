@@ -107,7 +107,7 @@ base = {
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/release'],
+        'prefix': ['eval/dc'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
