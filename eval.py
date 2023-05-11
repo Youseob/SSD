@@ -1,6 +1,7 @@
 import json
 import wandb
 import os
+import numpy as np
 from d4rl import reverse_normalized_score, get_normalized_score
 
 import datasets
@@ -103,10 +104,12 @@ if args.wandb:
     wandb.run.name = f"{args.dataset}"
     
 total_reward = 0
+rollout = []
 for t in range(env.max_episode_steps):
     samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
     action = to_np(samples)[0, :action_dim]
-    
+    rollout.append(np.expand_dims(state, axis=1))
+        
     next_state, reward, done, _ = env.step(action)
     total_reward += reward
     score = env.get_normalized_score(total_reward)
@@ -131,6 +134,9 @@ for t in range(env.max_episode_steps):
     if done:
         break
     state = next_state
+    
+rollout = dataset.normalizer.unnormalize(to_np(rollout), 'observations')
+dc.render_samples(rollout, args.epi_seed)
 
 if args.wandb:
     wandb.finish()
