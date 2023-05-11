@@ -11,7 +11,7 @@ class CQLCritic(nn.Module):
     def __init__(self, state_dim, action_dim, cond_dim, normalizer, hidden_dim=256, gamma=0.95, 
                  min_q_weight=1.0, temp=1.0, n_random=10, max_q_backup=False):
         super(CQLCritic, self).__init__()
-        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim, hidden_dim),
+        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -19,7 +19,7 @@ class CQLCritic(nn.Module):
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim))
 
-        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim, hidden_dim),
+        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -29,29 +29,29 @@ class CQLCritic(nn.Module):
         self.qf1_target = copy.deepcopy(self.qf1)
         self.qf2_target = copy.deepcopy(self.qf2)
         
-        self.goal_layer1 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-                                        nn.Mish(),
-                                        nn.Linear(hidden_dim, hidden_dim),
-                                        nn.Mish(),
-                                        nn.Linear(hidden_dim, hidden_dim))
-        self.goal_layer2 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-                                        nn.Mish(),
-                                        nn.Linear(hidden_dim, hidden_dim),
-                                        nn.Mish(),
-                                        nn.Linear(hidden_dim, hidden_dim))
-        self.goal_layer1_target = copy.deepcopy(self.goal_layer1)
-        self.goal_layer2_target = copy.deepcopy(self.goal_layer2)
+        # self.goal_layer1 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
+        #                                 nn.Mish(),
+        #                                 nn.Linear(hidden_dim, hidden_dim),
+        #                                 nn.Mish(),
+        #                                 nn.Linear(hidden_dim, hidden_dim))
+        # self.goal_layer2 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
+        #                                 nn.Mish(),
+        #                                 nn.Linear(hidden_dim, hidden_dim),
+        #                                 nn.Mish(),
+        #                                 nn.Linear(hidden_dim, hidden_dim))
+        # self.goal_layer1_target = copy.deepcopy(self.goal_layer1)
+        # self.goal_layer2_target = copy.deepcopy(self.goal_layer2)
         
-        self.final_layer1 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Mish(),
-                                         nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Mish(),
-                                         nn.Linear(hidden_dim, 1))
-        self.final_layer2 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-                                         nn.Mish(),
-                                         nn.Linear(hidden_dim, hidden_dim),
-                                         nn.Mish(),
-                                         nn.Linear(hidden_dim, 1))
+        # self.final_layer1 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
+        #                                  nn.Mish(),
+        #                                  nn.Linear(hidden_dim, hidden_dim),
+        #                                  nn.Mish(),
+        #                                  nn.Linear(hidden_dim, 1))
+        # self.final_layer2 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
+        #                                  nn.Mish(),
+        #                                  nn.Linear(hidden_dim, hidden_dim),
+        #                                  nn.Mish(),
+        #                                  nn.Linear(hidden_dim, 1))
         
         self.gamma = gamma
         self.n_random = n_random
@@ -70,25 +70,25 @@ class CQLCritic(nn.Module):
             self.goal_key = 'rtgs'
         
     def forward(self, state, action, goal):
-        x = torch.cat([state, action], dim=-1)
+        x = torch.cat([state, action, goal], dim=-1)
         q1, q2 = self.qf1(x), self.qf2(x)
-        g1, g2 = self.goal_layer1(goal), self.goal_layer2(goal)
-        x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return self.final_layer1(x1), self.final_layer2(x2)
+        # g1, g2 = self.goal_layer1(goal), self.goal_layer2(goal)
+        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
+        return q1, q2
     
     def forward_target(self, state, action, goal):
-        x = torch.cat([state, action], dim=-1)
+        x = torch.cat([state, action, goal], dim=-1)
         q1, q2 = self.qf1_target(x), self.qf2_target(x)
-        g1, g2 = self.goal_layer1_target(goal), self.goal_layer2_target(goal)
-        x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return self.final_layer1(x1), self.final_layer2(x2)
+        # g1, g2 = self.goal_layer1_target(goal), self.goal_layer2_target(goal)
+        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
+        return q1, q2
     
     def q1(self, state, action, goal):
         x = torch.cat([state, action], dim=-1)
         q1 = self.qf1(x)
-        g1 = self.goal_layer1(goal)
-        x1 = torch.cat([q1, g1], -1)
-        return self.final_layer1(x1)
+        # g1 = self.goal_layer1(goal)
+        # x1 = torch.cat([q1, g1], -1)
+        return q1
 
     def q_min(self, state, action):
         q1, q2 = self.forward(state, action)
@@ -97,8 +97,8 @@ class CQLCritic(nn.Module):
     def target_update(self):
         soft_copy_nn_module(self.qf1, self.qf1_target)
         soft_copy_nn_module(self.qf2, self.qf2_target)
-        soft_copy_nn_module(self.goal_layer1, self.goal_layer1_target)
-        soft_copy_nn_module(self.goal_layer2, self.goal_layer2_target)
+        # soft_copy_nn_module(self.goal_layer1, self.goal_layer1_target)
+        # soft_copy_nn_module(self.goal_layer2, self.goal_layer2_target)
     
     def loss(self, trajectories, goal, ema_model):
         batch_size = trajectories.shape[0]

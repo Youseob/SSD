@@ -73,14 +73,16 @@ class DiffuserCritic(object):
         self.critic = CQLCritic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
         self.critic_best = copy.deepcopy(self.critic)
         self.critic_target = copy.deepcopy(self.critic)
-        self.critic_optimizer1 = torch.optim.Adam([{'params': self.critic.qf1.parameters()},
-                                                   {'params': self.critic.final_layer1.parameters()}, 
-                                                   {'params': self.critic.goal_layer1.parameters()}], 
-                                                  lr=lr)
-        self.critic_optimizer2 = torch.optim.Adam([{'params': self.critic.qf2.parameters()},
-                                                   {'params': self.critic.final_layer2.parameters()}, 
-                                                   {'params': self.critic.goal_layer2.parameters()}], 
-                                                  lr=lr)
+        self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
+        self.critic_optimizer2 = torch.optim.Adam(self.critic.qf2.parameters(), lr=lr)
+        # self.critic_optimizer1 = torch.optim.Adam([{'params': self.critic.qf1.parameters()},
+        #                                            {'params': self.critic.final_layer1.parameters()}, 
+        #                                            {'params': self.critic.goal_layer1.parameters()}], 
+        #                                           lr=lr)
+        # self.critic_optimizer2 = torch.optim.Adam([{'params': self.critic.qf2.parameters()},
+        #                                            {'params': self.critic.final_layer2.parameters()}, 
+        #                                            {'params': self.critic.goal_layer2.parameters()}], 
+        #                                           lr=lr)
         
         self.dataset = dataset
         datalen = len(dataset)
@@ -151,7 +153,9 @@ class DiffuserCritic(object):
                 batch = batch_to_device(batch)
                 
                 loss_d = self.diffuser.loss(*batch)
-                loss_tot = (1.-self.maxq) * loss_d - self.alpha * q.mean()
+                if self.step < self.warmup_steps:
+                    loss_tot = loss_d
+                else: loss_tot = (1.-self.maxq) * loss_d - self.alpha * q.mean()
                 loss_d.backward()
             self.diffuser_optimizer.step()
             

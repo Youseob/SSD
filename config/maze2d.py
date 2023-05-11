@@ -57,7 +57,7 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc/'],
+        'prefix': ['dc1/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -67,7 +67,7 @@ base = {
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],
-        'warmup_steps': [4e5],
+        'warmup_steps': [4e4],
         'batch_size': [32],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
