@@ -9,8 +9,8 @@ import utils
 from utils.arrays import to_torch, to_np
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'maze2d-umaze-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -31,6 +31,7 @@ dataset = datasets.SequenceDataset(
     normalizer=args.normalizer,
     preprocess_fns=args.preprocess_fns,
     max_path_length=args.max_path_length,
+    max_n_episodes=args.max_n_episodes,
     use_padding=args.use_padding,
     seed=args.seed,
 )
