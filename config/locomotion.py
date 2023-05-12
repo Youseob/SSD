@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', 'n'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('maxq', 'maxq'),
@@ -47,15 +47,15 @@ base = {
         'max_n_episodes': [10000],
         
         ## diffuser
-        'conditional': [False],
+        'conditional': [True],
         'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         'beta_schedule': ['cosine'],
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
