@@ -81,7 +81,7 @@ state = env.reset()
 
 if 'maze2d' in args.dataset:
     print('Resetting target')
-    # if args.multi: env.set_target()
+    if args.multi: env.set_target()
     ## set conditioning xy position to be the goal
     target = env._target
 elif 'Fetch' in args.dataset:
