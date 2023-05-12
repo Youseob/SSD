@@ -42,20 +42,20 @@ base = {
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
         'preprocess_fns': [[]],
-        'use_padding': [False],
+        'use_padding': [True],
         'max_path_length': [1000],
         'max_n_episodes': [10000],
         
         ## diffuser
-        'conditional': [False],
+        'conditional': [True],
         'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         'beta_schedule': ['cosine'],
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 

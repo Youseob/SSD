@@ -161,7 +161,7 @@ class DiffuserCritic(object):
                     s = batch.trajectories[:, :self.observation_dim]
                     cond = batch.conditions
                     _, stacks = self.diffuser(s, cond, return_diffusion=True)
-                    diffusion_a = einops.rearrange(stacks[:,:,:2], 'b n d -> (b n) d')
+                    diffusion_a = einops.rearrange(stacks[:,:,:self.action_dim], 'b n d -> (b n) d')
                     diffusion_s = einops.repeat(s, 'b d -> (repeat b) d', repeat=stacks.shape[1])
                     diffusion_c = einops.repeat(cond, 'b d -> (repeat b) d', repeat=stacks.shape[1])
                     diffusion_q = self.critic.q_min(
@@ -171,7 +171,7 @@ class DiffuserCritic(object):
                     weight = minuscosine(t, stacks.shape[1])
                     diffusion_q = to_torch(weight[:,None]) * diffusion_q 
                     loss_tot = (1.-self.maxq) * loss_d - self.alpha * diffusion_q.mean()
-                    loss_tot.backward()
+                loss_tot.backward()
             self.diffuser_optimizer.step()
             
             if self.step % self.update_ema_every == 0:
