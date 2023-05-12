@@ -81,7 +81,7 @@ state = env.reset()
 
 if 'maze2d' in args.dataset:
     print('Resetting target')
-    env.set_target()
+    # if args.multi: env.set_target()
     ## set conditioning xy position to be the goal
     target = env._target
 elif 'Fetch' in args.dataset:
@@ -101,7 +101,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"{args.dataset}"
+    wandb.run.name = f"unigoal-{args.dataset}"
     
 total_reward = 0
 rollout = []

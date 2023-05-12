@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', 'n'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('maxq', 'maxq'),
@@ -74,7 +74,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [5],
+        'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -90,6 +90,7 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
+        'multi': [False],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4], 
@@ -116,7 +117,7 @@ base = {
         'horizon': [1], #None,
         'n_diffusion_steps': [20],
         'maxq': [False],
-        'conditional': [False],
+        'conditional': [True],
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],

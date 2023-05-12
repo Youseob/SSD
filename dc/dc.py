@@ -170,8 +170,8 @@ class DiffuserCritic(object):
                     t = np.array([np.arange(stacks.shape[1]) for _ in range(stacks.shape[0])]).flatten()
                     weight = minuscosine(t, stacks.shape[1])
                     diffusion_q = to_torch(weight[:,None]) * diffusion_q 
-                    loss_tot = (1.-self.maxq) * loss_d - self.alpha * q.mean() + diffusion_q
-                loss_tot.backward()
+                    loss_tot = (1.-self.maxq) * loss_d - self.alpha * diffusion_q.mean()
+                    loss_tot.backward()
             self.diffuser_optimizer.step()
             
             if self.step % self.update_ema_every == 0:
