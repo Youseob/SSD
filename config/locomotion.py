@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', 'n'),
+    ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('maxq', 'maxq'),
@@ -42,7 +42,7 @@ base = {
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
         'preprocess_fns': [[]],
-        'use_padding': [False],
+        'use_padding': [True],
         'max_path_length': [1000],
         'max_n_episodes': [10000],
         
