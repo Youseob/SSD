@@ -8,10 +8,10 @@ import pdb
 from .preprocessing import get_preprocess_fn
 from .d4rl import load_environment, sequence_dataset
 from .normalization import DatasetNormalizer
-from .buffer import ReplayBuffer, HERReplayBuffer
+from .buffer import ReplayBuffer
 
 
-Batch = namedtuple('Batch', 'trajectories conditions')
+Batch = namedtuple('Batch', 'trajectories conditions goals')
 ValueBatch = namedtuple('ValueBatch', 'trajectories conditions values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
@@ -81,10 +81,9 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.fields = fields
         self.n_episodes = fields.n_episodes
         self.path_lengths = fields.path_lengths
+        keys = ['observations', 'actions', 'next_observations', 'rewards', 'rtgs']
         if hasattr(env, "_target") or hasattr(env, 'goal'):
-            keys = ['observations', 'actions', 'next_observations', 'rewards', 'goals']
-        else:
-            keys = ['observations', 'actions', 'next_observations', 'rewards', 'rtgs']
+            keys = keys + ['goals']
             
         self.normalize(keys)
 
@@ -137,12 +136,15 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         # conditions = self.get_conditions(observations)
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
-            conditions = self.fields.normed_goals[path_ind, end-1]
+            goals = self.fields.normed_goals[path_ind, end-1]
         else:
-            conditions = self.fields.normed_rtgs[path_ind, end-1]
-        trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
-        trajectories = trajectories.flatten()
-        batch = Batch(trajectories, conditions)
+            goals = None
+        
+        conditions = self.fields.normed_rtgs[path_ind, end-1]
+        # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
+        trajectories = np.concatenate([observations, actions], axis=-1)
+        # trajectories = trajectories.flatten()
+        batch = Batch(trajectories, conditions, goals)
         return batch
 
 """

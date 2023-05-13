@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', 'n'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('maxq', 'maxq'),
@@ -37,6 +37,7 @@ base = {
         'loss_discount': [1],
         'predict_epsilon': [True],
         'calc_energy': [False],
+        'dim_mults': [(1,4,8)],
 
         ## dataset
         'termination_penalty': [None],

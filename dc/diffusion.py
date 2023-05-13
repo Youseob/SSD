@@ -7,7 +7,7 @@ from utils.helpers import cosine_beta_schedule, linear_beta_schedule, vp_beta_sc
                             extract, Losses
 
 class GaussianDiffusion(nn.Module):
-    def __init__(self, model, observation_dim, action_dim, cond_dim, horizon,
+    def __init__(self, model, observation_dim, action_dim, goal_dim, horizon,
                  n_timesteps=100, loss_type='l2', clip_denoised=True, predict_epsilon=True,
                  loss_discount=1.0, loss_weights=None, conditional=False, action_weight=1.,
                  condition_guidance_w=0.1, beta_schedule='cosine', device='cpu'):
@@ -16,7 +16,7 @@ class GaussianDiffusion(nn.Module):
         self.action_dim = action_dim
         self.obsact_dim = observation_dim + action_dim
         self.transition_dim = (observation_dim*2 + action_dim + 2) * horizon - observation_dim
-        self.cond_dim = cond_dim
+        self.goal_dim = goal_dim
         
         self.model = model
         self.conditional = conditional
@@ -190,10 +190,14 @@ class GaussianDiffusion(nn.Module):
             return x
         
     @torch.no_grad()
-    def conditional_sample(self, state, cond, *args, **kwargs):
+    def conditional_sample(self, state, cond, goal, *args, **kwargs):
         batch_size = cond.shape[0]
         shape =  (batch_size, self.transition_dim)
-        return self.p_sample_loop(shape, state, cond, *args, **kwargs)
+        if goal is not None:
+            y = torch.cat([cond, goal], -1)
+        else:
+            y = cond
+        return self.p_sample_loop(shape, state, y, *args, **kwargs)
     
     #------------------------------------------ training ------------------------------------------#
     
@@ -239,14 +243,18 @@ class GaussianDiffusion(nn.Module):
             
         return loss
     
-    def loss(self, trajectories, cond):
+    def loss(self, trajectories, cond, goal=None):
         batch_size = len(trajectories)
         x = trajectories[..., self.observation_dim:]
         state = trajectories[..., :self.observation_dim]
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
-        loss = self.p_losses(x, t, state, cond)
+        if goal is not None:
+            y = torch.cat([cond, goal], -1)
+        else: 
+            y = cond
+        loss = self.p_losses(x, t, state, y)
     
         return loss.mean()
 
-    def forward(self, state, cond, *args, **kwargs):
-        return self.conditional_sample(state, cond, *args, **kwargs)
+    def forward(self, state, cond, goal, *args, **kwargs):
+        return self.conditional_sample(state, cond, goal, *args, **kwargs)

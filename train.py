@@ -23,13 +23,13 @@ args = Parser().parse_args(iterparser)
 
 
 if 'maze2d' in args.dataset:
-    cond_dim = 2
+    goal_dim = 2
     renderer = utils.Maze2dRenderer(env=args.dataset)
 elif 'Fetch' in args.dataset:
-    cond_dim = 3
+    goal_dim = 3
     renderer = utils.MuJoCoRenderer(env=args.dataset)
 else:
-    cond_dim = 1
+    goal_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
 
 dataset = SequenceDataset(
@@ -46,8 +46,9 @@ dataset = SequenceDataset(
 dc = DiffuserCritic(
     dataset=dataset,
     renderer=renderer,
-    cond_dim=cond_dim,
+    goal_dim=goal_dim,
     device=args.device,
+    dim_mults=args.dim_mults,
     conditional=args.conditional,
     condition_dropout=args.condition_dropout,
     calc_energy=args.calc_energy,

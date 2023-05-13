@@ -36,6 +36,7 @@ base = {
         'loss_discount': [1],
         'predict_epsilon': [True],
         'calc_energy': [False],
+        'dim_mults': [(1,4,8)],
 
         ## dataset
         'termination_penalty': [None],
@@ -66,7 +67,7 @@ base = {
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],
-        'warmup_steps': [0],
+        'warmup_steps': [4e4],
         'batch_size': [32],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
@@ -114,8 +115,8 @@ base = {
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [1], #None,
-        'n_diffusion_steps': [20],
+        'horizon': [4], #None,
+        'n_diffusion_steps': [50],
         'maxq': [False],
         'conditional': [True],
 

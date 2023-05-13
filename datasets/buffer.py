@@ -118,7 +118,16 @@ class ReplayBuffer:
         print(f'[ datasets/buffer ] Finalized replay buffer | {self._count} episodes')
 
 
-class HERReplayBuffer(ReplayBuffer):
+class HindsightReplayBuffer:
+    def __init__(self, dataset, max_n_episodes, max_path_length, termination_penalty):
+        self._dict = {
+            'path_lengths': np.zeros(max_n_episodes, dtype=np.int),
+            'rtgs': np.zeros((max_n_episodes, max_path_length, 1), dtype=np.float32),
+        }
+        self._count = 0
+        self.max_n_episodes = max_n_episodes
+        self.max_path_length = max_path_length
+        self.termination_penalty = termination_penalty
         
     def add_path(self, path):
         path_length = len(path['observations'])
@@ -159,3 +168,4 @@ class HERReplayBuffer(ReplayBuffer):
         self._dict['rtgs'][self._count, :path_length] = rtg
         
         self._count += 1
+        

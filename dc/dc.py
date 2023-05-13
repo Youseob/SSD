@@ -10,9 +10,10 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
+from .temporal import TemporalUnet
 from .model import MLP
 from .diffusion import GaussianDiffusion
-from .qnet import CQLCritic, Critic
+from .qnet import CQLCritic, Critic, HindsightCritic
 
 def cycle(dl):
     while True:
@@ -24,13 +25,14 @@ class DiffuserCritic(object):
     def __init__(self, 
                  dataset,
                  renderer,
-                 cond_dim,
+                 goal_dim,
                  device,
                  ## model ##
                  conditional,
                  condition_dropout,
                  calc_energy,
                  ## diffuser ##
+                 dim_mults,
                  n_timesteps,
                  clip_denoised,
                  condition_guidance_w,
@@ -58,10 +60,13 @@ class DiffuserCritic(object):
         self.observation_dim = state_dim
         self.action_dim = action_dim
         self.obsact_dim = state_dim + action_dim
+        self.goal_dim = goal_dim
         
-        self.model = MLP(state_dim, action_dim, cond_dim, dataset.horizon, conditional=conditional, \
-                        condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, cond_dim, dataset.horizon,\
+        # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
+        #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
+        self.model = TemporalUnet(dataset.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+                            dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
+        self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, dataset.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
                                         conditional=conditional, condition_guidance_w=condition_guidance_w, \
                                         beta_schedule=beta_schedule, device=device).to(device)
@@ -71,20 +76,13 @@ class DiffuserCritic(object):
         self.ema_model = copy.deepcopy(self.diffuser)
         self.update_ema_every = update_ema_every
         
-        # self.critic = CQLCritic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
-        self.critic = Critic(state_dim, action_dim, cond_dim, dataset.normalizer).to(device)
+        # self.critic = CQLCritic(state_dim, action_dim, goal_dim, dataset.normalizer).to(device)
+        # self.critic = Critic(state_dim, action_dim, goal_dim, dataset.normalizer).to(device)
+        self.critic = HindsightCritic(state_dim, action_dim, goal_dim, dataset.normalizer).to(device)
         self.critic_best = copy.deepcopy(self.critic)
         self.critic_target = copy.deepcopy(self.critic)
         self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
         self.critic_optimizer2 = torch.optim.Adam(self.critic.qf2.parameters(), lr=lr)
-        # self.critic_optimizer1 = torch.optim.Adam([{'params': self.critic.qf1.parameters()},
-        #                                            {'params': self.critic.final_layer1.parameters()}, 
-        #                                            {'params': self.critic.goal_layer1.parameters()}], 
-        #                                           lr=lr)
-        # self.critic_optimizer2 = torch.optim.Adam([{'params': self.critic.qf2.parameters()},
-        #                                            {'params': self.critic.final_layer2.parameters()}, 
-        #                                            {'params': self.critic.goal_layer2.parameters()}], 
-        #                                           lr=lr)
         
         self.dataset = dataset
         datalen = len(dataset)
@@ -133,44 +131,49 @@ class DiffuserCritic(object):
             ## Critic
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            loss_q1, loss_q2, q = self.critic.loss(*batch, self.ema_model)
+            # loss_q1, loss_q2, q = self.critic.loss(*batch, self.ema_model)
+            loss_q1, loss_q2, q = self.critic.loss(batch, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
-            # cql_loss_q1.backward()
             loss_q1.backward()
             self.critic_optimizer1.step()
             
             self.critic_optimizer2.zero_grad()
-            # cql_loss_q2.backward()
             loss_q2.backward()
             self.critic_optimizer2.step()
             
-            # loss_q = torch.min(cql_loss_q1, cql_loss_q2)
             loss_q = torch.min(loss_q1, loss_q2)
             
             ## Diffuser
-            
             self.diffuser_optimizer.zero_grad()
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
-                loss_d = self.diffuser.loss(*batch)
-                if self.step < self.warmup_steps:
-                    loss_tot = loss_d
-                else:
-                    s = batch.trajectories[:, :self.observation_dim]
-                    cond = batch.conditions
-                    _, stacks = self.diffuser(s, cond, return_diffusion=True)
-                    diffusion_a = einops.rearrange(stacks[:,:,:self.action_dim], 'b n d -> (b n) d')
-                    diffusion_s = einops.repeat(s, 'b d -> (repeat b) d', repeat=stacks.shape[1])
-                    diffusion_c = einops.repeat(cond, 'b d -> (repeat b) d', repeat=stacks.shape[1])
-                    diffusion_q = self.critic.q_min(
-                        self.critic.unnorm(diffusion_s, 'observations'), self.critic.unnorm(diffusion_a, 'actions'), self.critic.unnorm(diffusion_c, self.critic.goal_key)
-                        )
-                    t = np.array([np.arange(stacks.shape[1]) for _ in range(stacks.shape[0])]).flatten()
-                    weight = minuscosine(t, stacks.shape[1])
-                    diffusion_q = to_torch(weight[:,None]) * diffusion_q 
-                    loss_tot = (1.-self.maxq) * loss_d + self.alpha * diffusion_q.sum()
+                # loss_d = self.diffuser.loss(*batch)
+                observation = batch.trajectories[:, :self.observation_dim]
+                action = batch.trajectories[:, self.observation_dim:self.obsact_dim]                
+                goal = batch.goals
+                hidx = np.random.choice(np.arange(self.batch_size), int(self.batch_size/2))
+                goal[hidx] = copy.deepcopy(observation[hidx, :self.goal_dim])
+                cond = self.critic.q_min(observation, action, goal)
+                loss_d = self.diffuser.loss(batch.trajectories, cond, goal)
+                loss_tot = loss_d                
+                # if self.step < self.warmup_steps:
+                #     loss_tot = loss_d
+                # else:
+                #     s = batch.trajectories[:, :self.observation_dim]
+                #     cond = batch.conditions
+                #     _, stacks = self.diffuser(s, cond, return_diffusion=True)
+                #     diffusion_a = einops.rearrange(stacks[:,:,:self.action_dim], 'b n d -> (b n) d')
+                #     diffusion_s = einops.repeat(s, 'b d -> (repeat b) d', repeat=stacks.shape[1])
+                #     diffusion_c = einops.repeat(cond, 'b d -> (repeat b) d', repeat=stacks.shape[1])
+                #     diffusion_q = self.critic.q_min(
+                #         self.critic.unnorm(diffusion_s, 'observations'), self.critic.unnorm(diffusion_a, 'actions'), self.critic.unnorm(diffusion_c, self.critic.goal_key)
+                #         )
+                #     t = np.array([np.arange(stacks.shape[1]) for _ in range(stacks.shape[0])]).flatten()
+                #     weight = minuscosine(t, stacks.shape[1])
+                #     diffusion_q = to_torch(weight[:,None]) * diffusion_q 
+                #     loss_tot = (1.-self.maxq) * loss_d + self.alpha * diffusion_q.sum()
                 loss_tot.backward()
             self.diffuser_optimizer.step()
             
@@ -187,7 +190,7 @@ class DiffuserCritic(object):
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                loss_q1_val, loss_q2_val, _ = self.critic.loss(*batch_val, self.ema_model)
+                loss_q1_val, loss_q2_val, _ = self.critic.loss(batch_val, self.ema_model)
             # loss_q_val = torch.min(cql_loss_q1_val, cql_loss_q2_val)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
@@ -209,7 +212,6 @@ class DiffuserCritic(object):
                         "loss_q": loss_q,
                         "loss_q_val": loss_q_val,
                         "Q": q.mean(),
-                        "diffusionQ": diffusion_q.sum(),
                     }, step = self.step)
                     
             self.step += 1
