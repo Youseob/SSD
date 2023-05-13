@@ -142,7 +142,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         conditions = self.fields.normed_rtgs[path_ind, end-1]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
-        trajectories = np.concatenate([observations, actions], axis=-1)
+        trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
         # trajectories = trajectories.flatten()
         batch = Batch(trajectories, conditions, goals)
         return batch

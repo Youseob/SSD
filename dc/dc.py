@@ -64,7 +64,7 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnet(dataset.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+        self.model = TemporalUnet(dataset.horizon, self.obsact_dim+2, goal_dim+1, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, dataset.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
@@ -149,12 +149,12 @@ class DiffuserCritic(object):
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
-                # loss_d = self.diffuser.loss(*batch)
-                observation = batch.trajectories[:, :self.observation_dim]
-                action = batch.trajectories[:, self.observation_dim:self.obsact_dim]                
+                observation = batch.trajectories[:, 0, :self.observation_dim]
+                action = batch.trajectories[:, 0, self.observation_dim:self.obsact_dim]                
                 goal = batch.goals
+                # hindsight experience
                 hidx = np.random.choice(np.arange(self.batch_size), int(self.batch_size/2))
-                goal[hidx] = copy.deepcopy(observation[hidx, :self.goal_dim])
+                goal[hidx] = observation[hidx, :self.goal_dim].clone()
                 cond = self.critic.q_min(observation, action, goal)
                 loss_d = self.diffuser.loss(batch.trajectories, cond, goal)
                 loss_tot = loss_d                

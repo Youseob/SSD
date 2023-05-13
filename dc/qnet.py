@@ -394,26 +394,30 @@ class HindsightCritic(nn.Module):
     def loss(self, batch, ema_model):
         trajectories = batch.trajectories
         batch_size = len(trajectories)
-        observation = trajectories[:, :self.observation_dim]
-        action = trajectories[:, self.observation_dim:self.obsact_dim]
-        next_observation = trajectories[:, self.obsact_dim:self.obsact_dim+self.observation_dim]
-        reward = trajectories[:, self.obsact_dim+self.observation_dim].reshape((batch_size,1))
-        samples = ema_model(next_observation, batch.conditions, batch.goals)
-        action_pi = samples[:, :self.action_dim]
+        observation = trajectories[:, 0, :self.observation_dim]
+        action = trajectories[:, 0, self.observation_dim:-2]
+        next_observation = trajectories[:, 1, :self.observation_dim]
+        reward = trajectories[:, 0, -2].reshape((batch_size,1, 1))
+        
+        unnormed_ns = self.normalizer.unnormalize(to_np(next_observation), 'observations').astype(np.float32)
+        at_goal = np.linalg.norm(unnormed_ns[:, :self.goal_dim] - to_np(batch.goals), axis=-1) < 0.5        
+        goals = batch.goals.clone()
+        goals[at_goal] = next_observation[at_goal, :self.goal_dim]
+        samples = ema_model(next_observation, batch.conditions, goals)
+        action_pi = samples[:, 0, self.observation_dim:-2]
         
         td_target = torch.zeros((batch_size, 1), device=trajectories.device)
-        at_goal = (next_observation[:, :self.goal_dim] == batch.goals).all(1)
-        td_target[at_goal] = 1
-        q1, q2 = self.forward_target(next_observation, action_pi, batch.goals)
-        td_target[~at_goal] = reward.reshape((batch_size,1)) + self.gamma * torch.min(q1, q2)
+        td_target[at_goal] = 1 
+        q1, q2 = self.forward_target(next_observation, action_pi, goals)
+        td_target[~at_goal] = (reward.reshape((batch_size,1)) + self.gamma * torch.min(q1, q2))[~at_goal]
         
-        pred_q1, pred_q2 = self.forward(observation, action, batch.goals)
+        pred_q1, pred_q2 = self.forward(observation, action, goals)
         pred_q = torch.min(pred_q1, pred_q2)
         
         random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random, action.shape[-1]))
         random_actions = self.unnorm(to_torch(random_actions).to('cuda'), 'actions')
         observation_temp = self.unnorm(einops.repeat(observation, 'b d -> b n d', n=self.n_random), 'observations')
-        goal_temp = self.unnorm(einops.repeat(batch.goals, 'b d -> b n d', n=self.n_random), self.goal_key)
+        goal_temp = self.unnorm(einops.repeat(goals, 'b d -> b n d', n=self.n_random), self.goal_key)
         rand_q1_rpt, rand_q2_rpt = self.forward_target(observation_temp, random_actions, goal_temp)
         rand_q1 = rand_q1_rpt.view(batch_size, self.n_random).max(dim=1, keepdim=True)[0]
         rand_q2 = rand_q2_rpt.view(batch_size, self.n_random).max(dim=1, keepdim=True)[0]
