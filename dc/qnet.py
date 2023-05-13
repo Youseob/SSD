@@ -380,8 +380,8 @@ class Critic(nn.Module):
         # samples are normed values
         a = trajectories[:, :self.action_dim]
         ns = trajectories[:, self.action_dim:self.obsact_dim]
-        r = trajectories[:, -2]
-        done = (trajectories[:, -1] > 0.5).float()
+        r = trajectories[:, self.obsact_dim]
+        done = (trajectories[:, self.obsact_dim+1] > 0.5).float()
         
         return a, ns, r, done
 
@@ -390,8 +390,8 @@ class Critic(nn.Module):
         # samples are normed values
         a = trajectories[:, :self.action_dim]
         ns = trajectories[:, self.action_dim:self.obsact_dim]
-        r = trajectories[:, -2]
-        done = (trajectories[:, -1] > 0.5).float()
+        r = trajectories[:, self.obsact_dim]
+        done = (trajectories[:, self.obsact_dim+1] > 0.5).float()
         
         a = to_torch(self.normalizer.unnormalize(to_np(a), 'actions'))
         ns = to_torch(self.normalizer.unnormalize(to_np(ns), 'observations'))

@@ -30,8 +30,8 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [1],
-        'n_diffusion_steps': [20],
+        'horizon': [4],
+        'n_diffusion_steps': [50],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
@@ -62,7 +62,7 @@ base = {
         ## training
         'seed': [0],
         'maxq': [False],
-        'alpha': [10],
+        'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],

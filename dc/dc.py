@@ -59,9 +59,9 @@ class DiffuserCritic(object):
         self.action_dim = action_dim
         self.obsact_dim = state_dim + action_dim
         
-        self.model = MLP(state_dim, action_dim, cond_dim, conditional=conditional, \
+        self.model = MLP(state_dim, action_dim, cond_dim, dataset.horizon, conditional=conditional, \
                         condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, cond_dim, \
+        self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, cond_dim, dataset.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
                                         conditional=conditional, condition_guidance_w=condition_guidance_w, \
                                         beta_schedule=beta_schedule, device=device).to(device)
@@ -201,14 +201,15 @@ class DiffuserCritic(object):
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
-                print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
+                print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_tot: {loss_tot:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
                 if self.wandb:
                     wandb.log({
                         "loss_tot": loss_tot,
                         "loss_d": loss_d,
                         "loss_q": loss_q,
                         "loss_q_val": loss_q_val,
-                        "Q": q.mean()
+                        "Q": q.mean(),
+                        "diffusionQ": diffusion_q.sum(),
                     }, step = self.step)
                     
             self.step += 1

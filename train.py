@@ -34,7 +34,7 @@ else:
 
 dataset = SequenceDataset(
     env=args.dataset,
-    horizon=1,
+    horizon=args.horizon,
     normalizer=args.normalizer,
     preprocess_fns=args.preprocess_fns,
     max_path_length=args.max_path_length,
