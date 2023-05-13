@@ -129,18 +129,19 @@ class SequenceDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx, eps=1e-4):
         path_ind, start, end = self.indices[idx]
 
-        observations = self.fields.normed_observations[path_ind, start]
-        actions = self.fields.normed_actions[path_ind, start]
-        rewards = self.fields.normed_rewards[path_ind, start]
-        next_observations = self.fields.normed_next_observations[path_ind, start]
-        terminals = self.fields.terminals[path_ind, start]
+        observations = self.fields.normed_observations[path_ind, start:end]
+        actions = self.fields.normed_actions[path_ind, start:end]
+        rewards = self.fields.normed_rewards[path_ind, start:end]
+        next_observations = self.fields.normed_next_observations[path_ind, start:end]
+        terminals = self.fields.terminals[path_ind, start:end]
 
         # conditions = self.get_conditions(observations)
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
-            conditions = self.fields.normed_goals[path_ind, start]
+            conditions = self.fields.normed_goals[path_ind, end-1]
         else:
-            conditions = self.fields.normed_rtgs[path_ind, start]
+            conditions = self.fields.normed_rtgs[path_ind, end-1]
         trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
+        trajectories = trajectories.flatten()
         batch = Batch(trajectories, conditions)
         return batch
 

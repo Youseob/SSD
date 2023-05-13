@@ -26,6 +26,7 @@ class MLP(nn.Module):
         state_dim,
         action_dim, 
         cond_dim,
+        horizon,
         time_dim=16, 
         conditional=False, 
         condition_dropout=0.1, 
@@ -33,7 +34,7 @@ class MLP(nn.Module):
         ):
         super(MLP, self).__init__()
         
-        transition_dim = state_dim + action_dim + 2
+        transition_dim = state_dim*2 + action_dim + 2
         
         if calc_energy:
             act_fn = nn.SiLU()
@@ -60,9 +61,9 @@ class MLP(nn.Module):
                 nn.Linear(256, transition_dim)
             )
             self.mask_dist = Bernoulli(probs=1-self.condition_dropout)
-            input_dim = transition_dim + time_dim + state_dim + transition_dim
+            input_dim = transition_dim * horizon + time_dim + transition_dim
         else:
-            input_dim = transition_dim + time_dim + state_dim + cond_dim
+            input_dim = transition_dim * horizon + time_dim 
             
         self.mid_layer = nn.Sequential(
             nn.Linear(input_dim, 256),
@@ -72,8 +73,8 @@ class MLP(nn.Module):
             nn.Linear(256, 256),
             act_fn
         )
-        
-        self.final_layer = nn.Linear(256, transition_dim)
+        output_dim = transition_dim * horizon - state_dim
+        self.final_layer = nn.Linear(256, output_dim)
         
     def forward(self, x, time, state, goal, use_dropout=True, force_dropout=False):
         if self.conditional:

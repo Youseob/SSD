@@ -22,7 +22,7 @@ eval_args_to_watch = [
     ('n_diffusion_steps', 'T'),
     ('batch_size', 'b'),
     ##
-    ('conditional', 'cond'),
+    ('maxq', 'maxq'),
     ('epi_seed', 's'),
 ]
 
@@ -30,8 +30,8 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [1],
-        'n_diffusion_steps': [20],
+        'horizon': [4],
+        'n_diffusion_steps': [50],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],

@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', 'n'),
+    ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('maxq', 'maxq'),
@@ -21,7 +21,7 @@ eval_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ##
-    ('conditional', 'cond'),
+    ('maxq', 'maxq'),
     ('epi_seed', 's'),
 ]
 
@@ -29,8 +29,8 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [1],
-        'n_diffusion_steps': [20],
+        'horizon': [4],
+        'n_diffusion_steps': [50],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
@@ -66,7 +66,7 @@ base = {
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],
-        'warmup_steps': [4e4],
+        'warmup_steps': [0],
         'batch_size': [32],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],

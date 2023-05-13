@@ -7,7 +7,7 @@ from utils.helpers import cosine_beta_schedule, linear_beta_schedule, vp_beta_sc
                             extract, Losses
 
 class GaussianDiffusion(nn.Module):
-    def __init__(self, model, observation_dim, action_dim, cond_dim,
+    def __init__(self, model, observation_dim, action_dim, cond_dim, horizon,
                  n_timesteps=100, loss_type='l2', clip_denoised=True, predict_epsilon=True,
                  loss_discount=1.0, loss_weights=None, conditional=False, action_weight=1.,
                  condition_guidance_w=0.1, beta_schedule='cosine', device='cpu'):
@@ -15,7 +15,7 @@ class GaussianDiffusion(nn.Module):
         self.observation_dim = observation_dim
         self.action_dim = action_dim
         self.obsact_dim = observation_dim + action_dim
-        self.transition_dim = observation_dim + action_dim + 2      # s, a, r, d
+        self.transition_dim = (observation_dim*2 + action_dim + 2) * horizon - observation_dim
         self.cond_dim = cond_dim
         
         self.model = model
