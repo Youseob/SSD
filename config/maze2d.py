@@ -21,7 +21,7 @@ eval_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ##
-    ('conditional', 'cond'),
+    ('maxq', 'maxq'),
     ('epi_seed', 's'),
 ]
 
@@ -62,7 +62,7 @@ base = {
         ## training
         'seed': [0],
         'maxq': [False],
-        'alpha': [1],
+        'alpha': [10],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],

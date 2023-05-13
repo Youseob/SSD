@@ -101,7 +101,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"unigoal-{args.dataset}"
+    wandb.run.name = f"{args.dataset}"
     
 total_reward = 0
 rollout = []
