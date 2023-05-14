@@ -9,6 +9,18 @@ from .d4rl import load_environment
 #-----------------------------------------------------------------------------#
 #-------------------------------- general api --------------------------------#
 #-----------------------------------------------------------------------------#
+def atleast_2d(x):
+    while x.ndim < 2:
+        x = np.expand_dims(x, axis=-1)
+    return x
+
+def discount_cumsum(x, gamma=1.):
+    discount_cumsum = np.zeros_like(x)
+    if len(x) == 0: return discount_cumsum
+    discount_cumsum[-1] = x[-1]
+    for t in reversed(range(x.shape[0]-1)):
+        discount_cumsum[t] = x[t] + gamma * discount_cumsum[t+1]
+    return discount_cumsum
 
 def compose(*fns):
 
@@ -55,6 +67,15 @@ def add_deltas(env):
 
     return _fn
 
+def mujoco_set_goals(env):
+    env = load_environment(env) if type(env) == str else env
+    def _fn(dataset):
+        rtg = atleast_2d(discount_cumsum(dataset['rewards']))
+        dataset['rtgs'] = rtg
+        dataset['goals'] = rtg
+        return dataset
+    return _fn
+        
 
 def maze2d_set_terminals(env):
     env = load_environment(env) if type(env) == str else env
