@@ -28,7 +28,7 @@ action_dim = env.action_space.shape[0]
 
 dataset = datasets.SequenceDataset(
     env=args.dataset,
-    horizon=1,
+    horizon=args.horizon,
     normalizer=args.normalizer,
     preprocess_fns=args.preprocess_fns,
     max_path_length=args.max_path_length,
@@ -38,21 +38,22 @@ dataset = datasets.SequenceDataset(
 )
 
 if 'maze2d' in args.dataset:
-    cond_dim = 2
+    goal_dim = 2
     renderer = utils.Maze2dRenderer(env=args.dataset)
 elif 'Fetch' in args.dataset:
-    cond_dim = 3
+    goal_dim = 3
     renderer = utils.MuJoCoRenderer(env=args.dataset)
 else:
-    cond_dim = 1
+    goal_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
 
 
 dc = DiffuserCritic(
     dataset=dataset,
     renderer=renderer,
-    cond_dim=cond_dim,
+    goal_dim=goal_dim,
     device=args.device,
+    dim_mults=args.dim_mults,
     conditional=args.conditional,
     condition_dropout=args.condition_dropout,
     calc_energy=args.calc_energy,

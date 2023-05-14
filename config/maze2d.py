@@ -10,8 +10,9 @@ diffusion_args_to_watch = [
     ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('maxq', 'maxq'),
-    ('conditional', 'cond'),
+    ('condition_guidance_w', 'gw'),
+    # ('maxq', 'maxq'),
+    # ('conditional', 'cond'),
 ]
 
 
@@ -29,13 +30,14 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [4],
+        'horizon': [16],
         'n_diffusion_steps': [50],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
         'calc_energy': [False],
+        'dim_mults': [(1,4,8)],
 
         ## dataset
         'termination_penalty': [None],
@@ -44,7 +46,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'use_padding': [False],
         'max_path_length': [240],
-        'max_n_episodes': [100000],
+        'max_n_episodes': [10685],
         
         ## diffuser
         'conditional': [True],
@@ -66,8 +68,8 @@ base = {
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e5],
-        'warmup_steps': [0],
-        'batch_size': [32],
+        'warmup_steps': [4e4],
+        'batch_size': [64],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
         'ema_decay': [0.995],
@@ -114,8 +116,8 @@ base = {
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [1], #None,
-        'n_diffusion_steps': [20],
+        'horizon': [4], #None,
+        'n_diffusion_steps': [50],
         'maxq': [False],
         'conditional': [True],
 

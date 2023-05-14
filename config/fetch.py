@@ -37,6 +37,7 @@ base = {
         'loss_discount': [1],
         'predict_epsilon': [True],
         'calc_energy': [False],
+        'dim_mults': [(1,4,8)],
 
         ## dataset
         'termination_penalty': [None],

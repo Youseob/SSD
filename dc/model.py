@@ -25,7 +25,7 @@ class MLP(nn.Module):
         self, 
         state_dim,
         action_dim, 
-        cond_dim,
+        goal_dim,
         horizon,
         time_dim=16, 
         conditional=False, 
@@ -54,7 +54,7 @@ class MLP(nn.Module):
         
         if self.conditional:
             self.cond_layer = nn.Sequential(
-                nn.Linear(cond_dim, 256),
+                nn.Linear(goal_dim+1, 256),
                 act_fn,
                 nn.Linear(256, 256),
                 act_fn,

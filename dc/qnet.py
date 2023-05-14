@@ -8,10 +8,10 @@ from utils.helpers import soft_copy_nn_module, minuscosine
 from utils.arrays import to_np, to_torch
 
 class CQLCritic(nn.Module):
-    def __init__(self, state_dim, action_dim, cond_dim, normalizer, hidden_dim=256, gamma=0.95, 
+    def __init__(self, state_dim, action_dim, goal_dim, normalizer, hidden_dim=256, gamma=0.95, 
                  min_q_weight=1.0, temp=1.0, n_random=10, max_q_backup=False):
         super(CQLCritic, self).__init__()
-        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
+        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -19,7 +19,7 @@ class CQLCritic(nn.Module):
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, 1))
 
-        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
+        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -28,30 +28,6 @@ class CQLCritic(nn.Module):
                                       nn.Linear(hidden_dim, 1))
         self.qf1_target = copy.deepcopy(self.qf1)
         self.qf2_target = copy.deepcopy(self.qf2)
-        
-        # self.goal_layer1 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim))
-        # self.goal_layer2 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim))
-        # self.goal_layer1_target = copy.deepcopy(self.goal_layer1)
-        # self.goal_layer2_target = copy.deepcopy(self.goal_layer2)
-        
-        # self.final_layer1 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, 1))
-        # self.final_layer2 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, 1))
         
         self.gamma = gamma
         self.n_random = n_random
@@ -71,24 +47,15 @@ class CQLCritic(nn.Module):
         
     def forward(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1, q2 = self.qf1(x), self.qf2(x)
-        # g1, g2 = self.goal_layer1(goal), self.goal_layer2(goal)
-        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return q1, q2
+        return self.qf1(x), self.qf2(x)
     
     def forward_target(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1, q2 = self.qf1_target(x), self.qf2_target(x)
-        # g1, g2 = self.goal_layer1_target(goal), self.goal_layer2_target(goal)
-        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return q1, q2
+        return self.qf1_target(x), self.qf2_target(x)
     
     def q1(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1 = self.qf1(x)
-        # g1 = self.goal_layer1(goal)
-        # x1 = torch.cat([q1, g1], -1)
-        return q1
+        return self.qf1(x)
 
     def q_min(self, state, action, goal):
         q1, q2 = self.forward(state, action, goal)
@@ -97,8 +64,6 @@ class CQLCritic(nn.Module):
     def target_update(self):
         soft_copy_nn_module(self.qf1, self.qf1_target)
         soft_copy_nn_module(self.qf2, self.qf2_target)
-        # soft_copy_nn_module(self.goal_layer1, self.goal_layer1_target)
-        # soft_copy_nn_module(self.goal_layer2, self.goal_layer2_target)
     
     def loss(self, trajectories, goal, ema_model):
         batch_size = trajectories.shape[0]
@@ -221,10 +186,10 @@ class CQLCritic(nn.Module):
         return to_torch(self.normalizer.unnormalize(to_np(x), key))
     
 class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim, cond_dim, normalizer, hidden_dim=256, gamma=0.95, 
+    def __init__(self, state_dim, action_dim, goal_dim, normalizer, hidden_dim=256, gamma=0.95, 
                  min_q_weight=1.0, temp=1.0, n_random=10, max_q_backup=False):
         super(Critic, self).__init__()
-        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
+        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -232,7 +197,7 @@ class Critic(nn.Module):
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, 1))
 
-        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + cond_dim, hidden_dim),
+        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
@@ -241,30 +206,6 @@ class Critic(nn.Module):
                                       nn.Linear(hidden_dim, 1))
         self.qf1_target = copy.deepcopy(self.qf1)
         self.qf2_target = copy.deepcopy(self.qf2)
-        
-        # self.goal_layer1 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim))
-        # self.goal_layer2 = nn.Sequential(nn.Linear(cond_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim),
-        #                                 nn.Mish(),
-        #                                 nn.Linear(hidden_dim, hidden_dim))
-        # self.goal_layer1_target = copy.deepcopy(self.goal_layer1)
-        # self.goal_layer2_target = copy.deepcopy(self.goal_layer2)
-        
-        # self.final_layer1 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, 1))
-        # self.final_layer2 = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, hidden_dim),
-        #                                  nn.Mish(),
-        #                                  nn.Linear(hidden_dim, 1))
         
         self.gamma = gamma
         self.n_random = n_random
@@ -284,24 +225,15 @@ class Critic(nn.Module):
         
     def forward(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1, q2 = self.qf1(x), self.qf2(x)
-        # g1, g2 = self.goal_layer1(goal), self.goal_layer2(goal)
-        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return q1, q2
+        return self.qf1(x), self.qf2(x)
     
     def forward_target(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1, q2 = self.qf1_target(x), self.qf2_target(x)
-        # g1, g2 = self.goal_layer1_target(goal), self.goal_layer2_target(goal)
-        # x1, x2 = torch.cat([q1, g1], -1), torch.cat([q2, g2], -1)
-        return q1, q2
+        return self.qf1_target(x), self.qf2_target(x)
     
     def q1(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
-        q1 = self.qf1(x)
-        # g1 = self.goal_layer1(goal)
-        # x1 = torch.cat([q1, g1], -1)
-        return q1
+        return self.qf1(x)
 
     def q_min(self, state, action, goal):
         q1, q2 = self.forward(state, action, goal)
@@ -310,8 +242,6 @@ class Critic(nn.Module):
     def target_update(self):
         soft_copy_nn_module(self.qf1, self.qf1_target)
         soft_copy_nn_module(self.qf2, self.qf2_target)
-        # soft_copy_nn_module(self.goal_layer1, self.goal_layer1_target)
-        # soft_copy_nn_module(self.goal_layer2, self.goal_layer2_target)
     
     def loss(self, trajectories, goal, ema_model):
         batch_size = trajectories.shape[0]
@@ -401,3 +331,128 @@ class Critic(nn.Module):
     
     def unnorm(self, x, key):
         return to_torch(self.normalizer.unnormalize(to_np(x), key))
+    
+class HindsightCritic(nn.Module):
+    def __init__(self, state_dim, action_dim, goal_dim, dataset, hidden_dim=256, gamma=0.95, 
+                 min_q_weight=1.0, temp=1.0, n_random=50, max_q_backup=False):
+        super(HindsightCritic, self).__init__()
+        self.qf1 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, 1))
+
+        self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, hidden_dim),
+                                      nn.Mish(),
+                                      nn.Linear(hidden_dim, 1))
+        self.qf1_target = copy.deepcopy(self.qf1)
+        self.qf2_target = copy.deepcopy(self.qf2)
+
+        self.gamma = gamma
+        self.n_random = n_random
+        self.min_q_weight = min_q_weight
+        self.temp = temp
+        self.max_q_backup = max_q_backup
+
+        self.observation_dim = state_dim
+        self.action_dim = action_dim
+        self.obsact_dim = state_dim + action_dim
+        self.goal_dim = goal_dim
+        
+        self.normalizer = dataset.normalizer
+        if 'goals' in self.normalizer.normalizers:
+            self.goal_key = 'goals'
+        elif 'rtgs' in self.normalizer.normalizers:
+            self.goal_key = 'rtgs'
+            
+    def forward(self, state, action, goal):
+        x = torch.cat([state, action, goal], dim=-1)
+        return self.qf1(x), self.qf2(x)
+    
+    def forward_target(self, state, action, goal):
+        x = torch.cat([state, action, goal], dim=-1)
+        return self.qf1_target(x), self.qf2_target(x)
+    
+    def q1(self, state, action, goal):
+        x = torch.cat([state, action, goal], dim=-1)
+        return self.qf1(x)
+
+    def q_min(self, state, action, goal):
+        q1, q2 = self.forward(state, action, goal)
+        return torch.min(q1, q2)
+    
+    def target_update(self):
+        soft_copy_nn_module(self.qf1, self.qf1_target)
+        soft_copy_nn_module(self.qf2, self.qf2_target)
+    
+    def loss(self, batch, goal_rand, ema_model):
+        trajectories = batch.trajectories
+        batch_size, horizon, _ = trajectories.shape
+        observation, action, next_observation, next_action = self.unnorm_transition(trajectories)
+        
+        # hindsight goals
+        goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device)
+        choice = np.random.choice(batch_size, int(batch_size/2), replace=False)
+        at_goal = torch.zeros((batch_size,)).bool()
+        for i, idx in enumerate(range(batch_size)):
+            if idx in choice: at_goal[i] = True
+        goals[at_goal] = next_observation[at_goal, -1, :self.goal_dim]
+        goals[~at_goal] = goal_rand[~at_goal]
+        
+        # hindsight values
+        samples = ema_model(self.norm(next_observation[:, 0], 'observations'), 
+                            batch.conditions, 
+                            self.norm(goals, 'goals'))
+        action_pi = samples[:, :-1, self.observation_dim:-2]        
+        goals_temp = einops.repeat(goals, 'b d -> b n d', n=horizon-1)
+        q1, q2 = self.forward_target(next_observation, self.unnorm(action_pi, 'actions'), goals_temp)
+        q = torch.min(q1, q2)
+        td_target = torch.zeros((batch_size, horizon-1, 1), device=trajectories.device)
+        td_target[at_goal] = (self.gamma ** reversed(torch.arange(horizon-1).to(q.device)))[...,None]
+        td_target[~at_goal] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(q.device))[...,None] * q[~at_goal]
+
+        # calaulate q value
+        pred_q1, pred_q2 = self.forward(observation, action, goals_temp)
+        pred_q = torch.min(pred_q1, pred_q2)
+        
+        # random q
+        random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random *(horizon-1), action.shape[-1]))
+        random_actions = self.unnorm(to_torch(random_actions).to('cuda'), 'actions')
+        observation_temp = einops.repeat(observation, 'b h d -> b (n h) d', n=self.n_random)
+        goals_temp = einops.repeat(goals, 'b d -> b (n h) d', n=self.n_random, h=horizon-1)
+        rand_q = self.q_min(observation_temp, random_actions, goals_temp)
+        maxq = rand_q.view(batch_size, self.n_random, horizon-1).argmax(dim=1)
+        negative_action = torch.zeros((batch_size, 1, horizon-1, self.action_dim), device=q.device)
+        for batch, idx in enumerate(maxq):
+            negative_action[batch, :, :] = random_actions[batch, idx[None]]
+        negative_action = negative_action.squeeze()
+        
+        goals_temp = einops.repeat(goals, 'b d -> b h d', h=horizon-1)
+        min_q1_loss, min_q2_loss = self.forward_target(observation, negative_action, goals_temp)
+        
+        loss1 = F.mse_loss(td_target.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
+        loss2 = F.mse_loss(td_target.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
+        
+        return loss1, loss2, pred_q, (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
+
+    def unnorm(self, x, key):
+        return to_torch(self.normalizer.unnormalize(to_np(x), key))
+
+    def norm(self, x, key):
+        return to_torch(self.normalizer(to_np(x), key))
+    
+    def unnorm_transition(self, trajectories):
+        observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
+        action = self.unnorm(trajectories[:, :-1, self.observation_dim:self.obsact_dim], 'actions')
+        next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
+        next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:self.obsact_dim], 'actions')
+        # reward = self.unnorm(trajectories[:, 0, -2], 'rewards').reshape((batch_size,1, 1))
+        # goals = next_observation[:, -1, :self.goal_dim].clone()
+        
+        return observation, action, next_observation, next_action
