@@ -133,9 +133,7 @@ class DiffuserCritic(object):
             ## Critic
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            goal_rand = batch.trajectories[:, torch.randint(self.horizon, (1,)), :self.goal_dim].squeeze()
-            while goal_rand.ndim < 2:
-                goal_rand = goal_rand[...,None]
+            goal_rand = batch.trajectories[:, torch.randint(self.horizon, (1,)), :self.goal_dim]
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
             loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)

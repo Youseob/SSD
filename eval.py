@@ -1,5 +1,6 @@
 import json
 import wandb
+import torch
 import os
 import numpy as np
 from d4rl import reverse_normalized_score, get_normalized_score
@@ -85,13 +86,16 @@ if 'maze2d' in args.dataset:
     if args.multi: env.set_target()
     ## set conditioning xy position to be the goal
     target = env._target
+    condition = torch.tensor([1]).to(args.device)
 elif 'Fetch' in args.dataset:
     ## set conditioning xyz position to be the goal
     target = env.goal
+    condition = torch.tensor([1]).to(args.device)
 else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
+    condition = target
 
 if args.wandb:
     print('Wandb init...')
@@ -107,15 +111,18 @@ if args.wandb:
 total_reward = 0
 rollout = []
 for t in range(env.max_episode_steps):
-    samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(target).unsqueeze(0))
-    action = to_np(samples)[0, :action_dim]
+    samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(condition).unsqueeze(0), to_torch(target).unsqueeze(0))
+    action = to_np(samples)[0, 0, :action_dim]
     rollout.append(state[None, ].copy())
         
     next_state, reward, done, _ = env.step(action)
+    
+    # if mujoco, decrease target rtg
     if 'maze2d' not in args.dataset and 'Fetch' not in args.dataset:
         target = dataset.normalizer.unnormalize(target, 'rtgs')
         target -= reward
         target = dataset.normalizer(target, 'rtgs')
+    
     total_reward += reward
     score = env.get_normalized_score(total_reward)
     print(
