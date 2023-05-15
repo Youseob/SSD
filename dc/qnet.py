@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import einops
+from torch.distributions import Exponential
+
 from utils.helpers import soft_copy_nn_module, minuscosine
 from utils.arrays import to_np, to_torch
 
@@ -353,6 +355,15 @@ class HindsightCritic(nn.Module):
                                       nn.Linear(hidden_dim, 1))
         self.qf1_target = copy.deepcopy(self.qf1)
         self.qf2_target = copy.deepcopy(self.qf2)
+        self.actor = nn.Sequential(nn.Linear(state_dim+goal_dim, hidden_dim),
+                                   nn.Mish(),
+                                   nn.Linear(hidden_dim, hidden_dim),
+                                   nn.Mish(),
+                                   nn.Linear(hidden_dim, hidden_dim),
+                                   nn.Mish(),
+                                   nn.Linear(hidden_dim, hidden_dim),
+                                   nn.Mish(),
+                                   nn.Linear(hidden_dim, action_dim))
 
         self.gamma = gamma
         self.n_random = n_random
@@ -379,6 +390,10 @@ class HindsightCritic(nn.Module):
         x = torch.cat([state, action, goal], dim=-1)
         return self.qf1_target(x), self.qf2_target(x)
     
+    def forward_actor(self, state, goal):
+        x = torch.cat([state, goal], dim=-1)
+        return self.actor(x)
+    
     def q1(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
         return self.qf1(x)
@@ -395,6 +410,7 @@ class HindsightCritic(nn.Module):
         trajectories = batch.trajectories
         batch_size, horizon, _ = trajectories.shape
         observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
+        device = trajectories.device
         
         # hindsight goals
         goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device)
@@ -411,44 +427,47 @@ class HindsightCritic(nn.Module):
                             self.norm(goals, 'goals'))
         action_pi = samples[:, :-1, self.observation_dim:-2]        
         goals_temp = einops.repeat(goals, 'b d -> b n d', n=horizon-1)
-        q1, q2 = self.forward_target(next_observation, self.unnorm(action_pi, 'actions'), goals_temp)
-        q = torch.min(q1, q2)
-        td_target = torch.zeros((batch_size, horizon-1, 1), device=trajectories.device)
-        td_target[at_goal] = (self.gamma ** reversed(torch.arange(horizon-1).to(q.device)))[...,None]
-        td_target[~at_goal] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(q.device))[...,None] * q[~at_goal]
+        next_q1, next_q2 = self.forward_target(next_observation, self.unnorm(action_pi, 'actions'), goals_temp)
+        next_q = torch.min(next_q1, next_q2)
+        td_target = torch.zeros((batch_size, horizon-1, 1), device=device)
+        td_target[at_goal] = (self.gamma ** reversed(torch.arange(horizon-1).to(device)))[...,None]
+        td_target[~at_goal] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(device))[...,None] * next_q[~at_goal]
 
         # calaulate q value
         pred_q1, pred_q2 = self.forward(observation, action, goals_temp)
-        pred_q = torch.min(pred_q1, pred_q2)
+        targ_q1, targ_q2 = self.forward_target(observation, action, goals_temp)
+        targ_q = torch.min(targ_q1, targ_q2)
         
-        # random q
-        random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random, (horizon-1), self.action_dim))
-        random_actions = self.unnorm(to_torch(random_actions).to('cuda'), 'actions')
-        observation_temp = einops.repeat(observation, 'b h d -> b n h d', n=self.n_random)
-        goals_temp = einops.repeat(goals, 'b d -> b n h d', n=self.n_random, h=horizon-1)
-        rand_q = self.q_min(observation_temp, random_actions, goals_temp)
-        maxq = rand_q.view(batch_size, self.n_random, horizon-1).argmax(dim=1)
-        negative_action = torch.zeros((batch_size, (horizon-1), self.action_dim), device=q.device)
-        negative_observation = torch.zeros((batch_size, (horizon-1), self.observation_dim), device=q.device)
-        negative_goal = torch.zeros((batch_size, (horizon-1), self.goal_dim), device=q.device)
-        maxidx = torch.zeros((batch_size, (horizon-1), 3), device=q.device).long()
-        for i, idx in enumerate(maxq):
-            for h in range(horizon-1):
-                maxidx[i, h, 0] = i
-                maxidx[i, h, 1] = idx[h]
-                maxidx[i, h, 2] = h
-        for i, idxs in enumerate(maxidx):
-            for j, idx in enumerate(idxs):
-                negative_action[i, j] = random_actions[list(idx)]
-                negative_observation[i, j] = observation_temp[list(idx)]
-                negative_goal[i, j] = goals_temp[list(idx)]
+        # sample negative action
+        x = torch.cat([observation[:, 0], goals], -1)
+        negative_action = self.actor(x)
+        # random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random, (horizon-1), self.action_dim))
+        # random_actions = self.unnorm(to_torch(random_actions).to('cuda'), 'actions')
+        # observation_temp = einops.repeat(observation, 'b h d -> b n h d', n=self.n_random)
+        # goals_temp = einops.repeat(goals, 'b d -> b n h d', n=self.n_random, h=horizon-1)
+        # rand_q = self.q_min(observation_temp, random_actions, goals_temp)
+        # maxq = rand_q.view(batch_size, self.n_random, horizon-1).argmax(dim=1)
+        # negative_action = torch.zeros((batch_size, (horizon-1), self.action_dim), device=device)
+        # negative_observation = torch.zeros((batch_size, (horizon-1), self.observation_dim), device=device)
+        # negative_goal = torch.zeros((batch_size, (horizon-1), self.goal_dim), device=device)
+        # maxidx = torch.zeros((batch_size, (horizon-1), 3), device=device).long()
+        # for i, idx in enumerate(maxq):
+        #     for h in range(horizon-1):
+        #         maxidx[i, h, 0] = i
+        #         maxidx[i, h, 1] = idx[h]
+        #         maxidx[i, h, 2] = h
+        # for i, idxs in enumerate(maxidx):
+        #     for j, idx in enumerate(idxs):
+        #         negative_action[i, j] = random_actions[list(idx)]
+        #         negative_observation[i, j] = observation_temp[list(idx)]
+        #         negative_goal[i, j] = goals_temp[list(idx)]
         
-        min_q1_loss, min_q2_loss = self.forward(negative_observation, negative_action, negative_goal)
+        min_q1_loss, min_q2_loss = self.forward(observation[:, 0], negative_action.detach(), goals)
         
         loss1 = F.mse_loss(td_target.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
         loss2 = F.mse_loss(td_target.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
         
-        return loss1, loss2, pred_q, (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
+        return loss1, loss2, targ_q.mean(), (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
 
     def unnorm(self, x, key):
         return to_torch(self.normalizer.unnormalize(to_np(x), key))

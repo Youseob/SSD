@@ -84,6 +84,7 @@ class DiffuserCritic(object):
         self.critic_target = copy.deepcopy(self.critic)
         self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
         self.critic_optimizer2 = torch.optim.Adam(self.critic.qf2.parameters(), lr=lr)
+        self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
         datalen = len(dataset)
@@ -146,6 +147,11 @@ class DiffuserCritic(object):
             self.critic_optimizer2.zero_grad()
             loss_q2.backward()
             self.critic_optimizer2.step()
+            
+            self.actor_optimizer.zero_grad()
+            loss_actor = -q
+            loss_actor.backward()
+            self.actor_optimizer.step()
             
             loss_q = torch.min(loss_q1, loss_q2)
             
