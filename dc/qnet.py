@@ -413,13 +413,14 @@ class HindsightCritic(nn.Module):
         device = trajectories.device
         
         # hindsight goals
-        goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device)
+        goals = torch.zeros_like(batch.goals)
         choice = np.random.choice(batch_size, int(batch_size/2), replace=False)
         at_goal = torch.zeros((batch_size,)).bool()
-        for i, idx in enumerate(range(batch_size)):
-            if idx in choice: at_goal[i] = True
+        for i in range(batch_size):
+            if i in choice: at_goal[i] = True
+        
         goals[at_goal] = next_observation[at_goal, -1, :self.goal_dim]
-        goals[~at_goal] = goal_rand[~at_goal]
+        goals[~at_goal] = goal_rand[~at_goal, 0]
         
         # hindsight values
         samples = ema_model(self.norm(next_observation[:, 0], 'observations'), 
