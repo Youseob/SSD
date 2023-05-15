@@ -394,7 +394,7 @@ class HindsightCritic(nn.Module):
     def loss(self, batch, goal_rand, ema_model):
         trajectories = batch.trajectories
         batch_size, horizon, _ = trajectories.shape
-        observation, action, next_observation, next_action = self.unnorm_transition(trajectories)
+        observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
         
         # hindsight goals
         goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device)
@@ -422,19 +422,28 @@ class HindsightCritic(nn.Module):
         pred_q = torch.min(pred_q1, pred_q2)
         
         # random q
-        random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random *(horizon-1), action.shape[-1]))
+        random_actions = np.random.uniform(-1, 1, (pred_q.shape[0], self.n_random, (horizon-1), self.action_dim))
         random_actions = self.unnorm(to_torch(random_actions).to('cuda'), 'actions')
-        observation_temp = einops.repeat(observation, 'b h d -> b (n h) d', n=self.n_random)
-        goals_temp = einops.repeat(goals, 'b d -> b (n h) d', n=self.n_random, h=horizon-1)
+        observation_temp = einops.repeat(observation, 'b h d -> b n h d', n=self.n_random)
+        goals_temp = einops.repeat(goals, 'b d -> b n h d', n=self.n_random, h=horizon-1)
         rand_q = self.q_min(observation_temp, random_actions, goals_temp)
         maxq = rand_q.view(batch_size, self.n_random, horizon-1).argmax(dim=1)
-        negative_action = torch.zeros((batch_size, 1, horizon-1, self.action_dim), device=q.device)
-        for batch, idx in enumerate(maxq):
-            negative_action[batch, :, :] = random_actions[batch, idx[None]]
-        negative_action = negative_action.squeeze()
+        negative_action = torch.zeros((batch_size, (horizon-1), self.action_dim), device=q.device)
+        negative_observation = torch.zeros((batch_size, (horizon-1), self.observation_dim), device=q.device)
+        negative_goal = torch.zeros((batch_size, (horizon-1), self.goal_dim), device=q.device)
+        maxidx = torch.zeros((batch_size, (horizon-1), 3), device=q.device).long()
+        for i, idx in enumerate(maxq):
+            for h in range(horizon-1):
+                maxidx[i, h, 0] = i
+                maxidx[i, h, 1] = idx[h]
+                maxidx[i, h, 2] = h
+        for i, idxs in enumerate(maxidx):
+            for j, idx in enumerate(idxs):
+                negative_action[i, j] = random_actions[list(idx)]
+                negative_observation[i, j] = observation_temp[list(idx)]
+                negative_goal[i, j] = goals_temp[list(idx)]
         
-        goals_temp = einops.repeat(goals, 'b d -> b h d', h=horizon-1)
-        min_q1_loss, min_q2_loss = self.forward_target(observation, negative_action, goals_temp)
+        min_q1_loss, min_q2_loss = self.forward_target(negative_observation, negative_action, negative_goal)
         
         loss1 = F.mse_loss(td_target.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
         loss2 = F.mse_loss(td_target.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
