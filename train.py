@@ -21,7 +21,6 @@ class Parser(utils.Parser):
 
 args = Parser().parse_args(iterparser)
 
-
 if 'maze2d' in args.dataset:
     goal_dim = 2
     renderer = utils.Maze2dRenderer(env=args.dataset)

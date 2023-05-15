@@ -127,6 +127,10 @@ class Parser(Tap):
             keys = [*json_dict]
             for key in keys:
                 if key not in self._log_all():
+                    if type(json_dict[key]) is dict :
+                        setattr(args, key, json_dict[key]['_value'])
+                        self._dict[key] = json_dict[key]['_value']
+                        continue
                     setattr(args, key, json_dict[key])
                     self._dict[key] = json_dict[key]
 

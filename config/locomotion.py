@@ -114,13 +114,14 @@ base = {
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [4], #None,
+        'horizon': [16], #None,
         'n_diffusion_steps': [50],
+        'condition_guidance_w': [1.2],
         'maxq': [True],
         'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_gw{condition_guidance_w}'],
         'diffusion_epoch': [39999],
 
         'verbose': [False],
