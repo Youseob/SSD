@@ -81,17 +81,14 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.fields = fields
         self.n_episodes = fields.n_episodes
         self.path_lengths = fields.path_lengths
-        keys = ['observations', 'actions', 'next_observations', 'rewards', 'rtgs']
-        if hasattr(env, "_target") or hasattr(env, 'goal'):
-            keys = keys + ['goals']
             
-        self.normalize(keys)
+        self.normalize()
 
         print(fields)
         # shapes = {key: val.shape for key, val in self.fields.items()}
         # print(f'[ datasets/mujoco ] Dataset fields: {shapes}')
 
-    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs']):
+    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs', 'goals']):
         '''
             normalize fields that will be predicted by the diffusion model
         '''
@@ -138,7 +135,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
             goals = self.fields.normed_goals[path_ind, end-1]
         else:
-            goals = None
+            goals = self.fields.normed_rtgs[path_ind, end-1]
         
         conditions = self.fields.normed_rtgs[path_ind, end-1]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)

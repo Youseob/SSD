@@ -7,11 +7,11 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', 'n'),
+    ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('maxq', 'maxq'),
-    ('conditional', 'cond'),
+    ('condition_guidance_w', 'gw'),
+    # ('conditional', 'cond'),
 ]
 
 
@@ -30,22 +30,22 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [4],
+        'dim_mults': [(1, 4, 8)],
+        'horizon': [16],
         'n_diffusion_steps': [50],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
         'calc_energy': [False],
-        'dim_mults': [(1,4,8)],
 
         ## dataset
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
-        'preprocess_fns': [[]],
+        'preprocess_fns': [['mujoco_set_goals']],
         'use_padding': [True],
         'max_path_length': [1000],
-        'max_n_episodes': [10000],
+        'max_n_episodes': [5000],
         
         ## diffuser
         'conditional': [True],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [5],
+        'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -114,10 +114,10 @@ base = {
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [32], #None,
-        'n_diffusion_steps': [20],
+        'horizon': [4], #None,
+        'n_diffusion_steps': [50],
         'maxq': [True],
-        'conditional': [False],
+        'conditional': [True],
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],

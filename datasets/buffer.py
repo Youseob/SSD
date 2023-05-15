@@ -19,7 +19,6 @@ class ReplayBuffer:
     def __init__(self, max_n_episodes, max_path_length, termination_penalty):
         self._dict = {
             'path_lengths': np.zeros(max_n_episodes, dtype=np.int),
-            'rtgs': np.zeros((max_n_episodes, max_path_length, 1), dtype=np.float32),
         }
         self._count = 0
         self.max_n_episodes = max_n_episodes
@@ -98,8 +97,8 @@ class ReplayBuffer:
         self._dict['path_lengths'][self._count] = path_length
         
         ## record rtg
-        rtg = atleast_2d(discount_cumsum(path['rewards']))
-        self._dict['rtgs'][self._count, :path_length] = rtg
+        # rtg = atleast_2d(discount_cumsum(path['rewards']))
+        # self._dict['rtgs'][self._count, :path_length] = rtg
         
         ## increment path counter
         self._count += 1
@@ -112,7 +111,7 @@ class ReplayBuffer:
 
     def finalize(self):
         ## remove extra slots
-        for key in self.keys + ['path_lengths', 'rtgs']:
+        for key in self.keys + ['path_lengths']:
             self._dict[key] = self._dict[key][:self._count]
         self._add_attributes()
         print(f'[ datasets/buffer ] Finalized replay buffer | {self._count} episodes')
