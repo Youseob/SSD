@@ -190,9 +190,7 @@ class DiffuserCritic(object):
             self.critic.eval()
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch)
-            goal_rand = batch_val.trajectories[:, torch.randint(self.horizon, (1,)), :self.goal_dim].squeeze()
-            while goal_rand.ndim < 2:
-                goal_rand = goal_rand[...,None]
+            goal_rand = batch_val.trajectories[:, torch.randint(self.horizon, (1,)), :self.goal_dim]
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
