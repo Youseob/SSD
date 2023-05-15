@@ -410,17 +410,20 @@ class HindsightCritic(nn.Module):
         trajectories = batch.trajectories
         batch_size, horizon, _ = trajectories.shape
         observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
+        goal_rand = self.unnorm(goal_rand, 'goals')
         device = trajectories.device
         
         # hindsight goals
         goals = torch.zeros_like(batch.goals)
-        choice = np.random.choice(batch_size, int(batch_size/2), replace=False)
-        at_goal = torch.zeros((batch_size,)).bool()
+        choice = np.random.choice(batch_size, int(batch_size//2), replace=False)
+        choice.sort()
+        choice = to_torch(choice)
+        # at_goal = torch.zeros((batch_size,)).bool()
         for i in range(batch_size):
-            if i in choice: at_goal[i] = True
-        
-        goals[at_goal] = next_observation[at_goal, -1, :self.goal_dim]
-        goals[~at_goal] = goal_rand[~at_goal, 0]
+            if i in choice: 
+                goals[i] = next_observation[i, -1, :self.goal_dim].clone()
+            else:
+                goals[i] = goal_rand[i, 0].clone() 
         
         # hindsight values
         samples = ema_model(self.norm(next_observation[:, 0], 'observations'), 
@@ -431,8 +434,11 @@ class HindsightCritic(nn.Module):
         next_q1, next_q2 = self.forward_target(next_observation, self.unnorm(action_pi, 'actions'), goals_temp)
         next_q = torch.min(next_q1, next_q2)
         td_target = torch.zeros((batch_size, horizon-1, 1), device=device)
-        td_target[at_goal] = (self.gamma ** reversed(torch.arange(horizon-1).to(device)))[...,None]
-        td_target[~at_goal] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(device))[...,None] * next_q[~at_goal]
+        for i in range(batch_size):
+            if i in choice:
+                td_target[i] = (self.gamma ** reversed(torch.arange(horizon-1).to(device))).unsqueeze(-1)
+            else:
+                td_target[i] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(device))[...,None] * next_q[i]
 
         # calaulate q value
         pred_q1, pred_q2 = self.forward(observation, action, goals_temp)
