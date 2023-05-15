@@ -120,6 +120,10 @@ def her_maze2d_set_terminals(env):
 
     def _fn(dataset):
         dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
+        rtg = atleast_2d(discount_cumsum(dataset['rewards']))
+        dataset['rtgs'] = rtg
+        dataset['goals'] = rtg
+        
         her_goal = np.zeros_like(dataset['infos/goal'])
         start = 0
         for end in np.where(dataset['timeouts'])[0]+1:
