@@ -154,8 +154,8 @@ class DiffuserCritic(object):
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
-                observation = batch.trajectories[:, 0, :self.observation_dim]
-                action = batch.trajectories[:, 0, self.observation_dim:self.obsact_dim]                
+                last_observation = batch.trajectories[:, -1, :self.observation_dim]
+                last_action = batch.trajectories[:, -1, self.observation_dim:self.obsact_dim]                
                 
                 # hindsight experience goal
                 trajectories = batch.trajectories.clone()
@@ -167,8 +167,8 @@ class DiffuserCritic(object):
                 trajectories[:, -1, -2] = self.dataset.normalizer(torch.tensor([1], dtype=torch.float32), 'rewards')
                 
                 # calculate Q
-                cond = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                         self.critic.unnorm(action, 'actions'), 
+                cond = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
+                                         self.critic.unnorm(last_action, 'actions'), 
                                          self.critic.unnorm(goal, 'goals'))
                 loss_d = self.diffuser.loss(trajectories, cond, goal)
                 loss_d.backward()
