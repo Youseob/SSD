@@ -397,9 +397,9 @@ class HindsightCritic(nn.Module):
         observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
         
         # hindsight goals
-        goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device, requires_grad = True)
+        goals = torch.zeros((batch_size, self.goal_dim), device=trajectories.device)
         choice = np.random.choice(batch_size, int(batch_size/2), replace=False)
-        at_goal = torch.zeros((batch_size,), requires_grad = True).bool()
+        at_goal = torch.zeros((batch_size,)).bool()
         for i, idx in enumerate(range(batch_size)):
             if idx in choice: at_goal[i] = True
         goals[at_goal] = next_observation[at_goal, -1, :self.goal_dim]
@@ -429,8 +429,8 @@ class HindsightCritic(nn.Module):
         rand_q = self.q_min(observation_temp, random_actions, goals_temp)
         maxq = rand_q.view(batch_size, self.n_random, horizon-1).argmax(dim=1)
         negative_action = torch.zeros((batch_size, (horizon-1), self.action_dim), device=q.device)
-        negative_observation = torch.zeros((batch_size, (horizon-1), self.observation_dim), device=q.device, requires_grad = True)
-        negative_goal = torch.zeros((batch_size, (horizon-1), self.goal_dim), device=q.device, requires_grad = True)
+        negative_observation = torch.zeros((batch_size, (horizon-1), self.observation_dim), device=q.device)
+        negative_goal = torch.zeros((batch_size, (horizon-1), self.goal_dim), device=q.device)
         maxidx = torch.zeros((batch_size, (horizon-1), 3), device=q.device).long()
         for i, idx in enumerate(maxq):
             for h in range(horizon-1):
@@ -443,7 +443,7 @@ class HindsightCritic(nn.Module):
                 negative_observation[i, j] = observation_temp[list(idx)]
                 negative_goal[i, j] = goals_temp[list(idx)]
         
-        min_q1_loss, min_q2_loss = self.forward_target(negative_observation, negative_action, negative_goal)
+        min_q1_loss, min_q2_loss = self.forward(negative_observation, negative_action, negative_goal)
         
         loss1 = F.mse_loss(td_target.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
         loss2 = F.mse_loss(td_target.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
