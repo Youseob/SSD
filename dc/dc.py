@@ -190,11 +190,11 @@ class DiffuserCritic(object):
             self.critic.eval()
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch)
-            goal_rand = batch_val.trajectories[:, torch.randint(self.horizon, (1,)), :self.goal_dim]
+            goal_rand_val = batch_val.trajectories[:, 0, :self.goal_dim]
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand, self.ema_model)
+                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand_val, self.ema_model)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')
