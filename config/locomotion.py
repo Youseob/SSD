@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [1e6],
+        'n_train_steps': [1e5],
         'warmup_steps': [4e4],
         'batch_size': [32],
         'lr': [2e-4],
