@@ -94,8 +94,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-# condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))
-condition = torch.ones((1, args.horizon, 1)).to(args.device)
+condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
+# condition = torch.ones((1, args.horizon, 1)).to(args.device)
 
 if args.wandb:
     print('Wandb init...')
@@ -107,16 +107,30 @@ if args.wandb:
                dir=wandb_dir,
                )
     # wandb.run.name = f"decreQ_{args.dataset}"
-    wandb.run.name = f"{args.dataset}"
-    
+    wandb.run.name = f"positional_{args.dataset}"
+
 total_reward = 0
 rollout = []
+at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
-    # samples = dc.diffuser(to_torch(state).reshape(1, 1, observation_dim), condition, to_torch(target).reshape(1,goal_dim))
-    # action = to_np(samples)[0, 0, observation_dim:-2]
-    samples = dc.critic.actor(to_torch(np.concatenate([state,target], -1)))
-    action = to_np(samples[0])
+    if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
+        at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
+        if at_goal:
+            action = (target - state[:goal_dim]) + (env.sim.data.qvel-state[goal_dim:])
+        else:
+            normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
+            normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
+            samples = dc.diffuser(normed_state, condition, normed_target)
+            action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-2], 'actions')
+            # next_waypoint = dataset.normalizer.unnormalize(to_np(samples)[0, 1, :observation_dim], 'observations')
+            # action = next_waypoint[:goal_dim] - state[:goal_dim] + (next_waypoint[goal_dim:] - state[goal_dim:])
+    else:
+        normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
+        normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
+        samples = dc.diffuser(normed_state, condition, normed_target)
+        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-2], 'actions')
+        
     rollout.append(state[None, ].copy())
         
     next_state, reward, done, _ = env.step(action)
