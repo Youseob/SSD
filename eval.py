@@ -11,8 +11,8 @@ import utils
 from utils.arrays import to_torch, to_np
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'maze2d-umaze-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -94,8 +94,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))
-# condition = torch.ones((1, args.horizon, 1)).to(args.device)
+# condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))
+condition = torch.ones((1, args.horizon, 1)).to(args.device)
 
 if args.wandb:
     print('Wandb init...')
@@ -112,8 +112,11 @@ if args.wandb:
 total_reward = 0
 rollout = []
 for t in range(env.max_episode_steps):
-    samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
-    action = to_np(samples)[0, 0, observation_dim:-2]
+    # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
+    # samples = dc.diffuser(to_torch(state).reshape(1, 1, observation_dim), condition, to_torch(target).reshape(1,goal_dim))
+    # action = to_np(samples)[0, 0, observation_dim:-2]
+    samples = dc.critic.actor(to_torch(np.concatenate([state,target], -1)))
+    action = to_np(samples[0])
     rollout.append(state[None, ].copy())
         
     next_state, reward, done, _ = env.step(action)
