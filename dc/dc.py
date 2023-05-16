@@ -65,7 +65,7 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnet(self.horizon, self.obsact_dim+2, goal_dim+1, conditional=conditional, \
+        self.model = TemporalUnet(self.horizon, self.obsact_dim+2, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
@@ -87,6 +87,7 @@ class DiffuserCritic(object):
         self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
+        self.env_name = dataset.env.name
         datalen = len(dataset)
         trainlen = round(datalen*0.8)
         vallen = round(datalen*0.2)
@@ -126,14 +127,18 @@ class DiffuserCritic(object):
         self.ema.update_model_average(self.ema_model, self.diffuser)
     
     def train(self, n_train_steps):
-        best_loss_q = 1e-1
+        best_loss_q = 1e0
         for step in range(int(n_train_steps)):
             self.model.train()
             timer = Timer()
             ## Critic
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            goal_rand = batch.trajectories[:, 0, :self.goal_dim].clone()
+            if 'Fetch' in self.env_name or 'maze' in self.env_name:
+                # any states drawn from D
+                goal_rand = batch.trajectories[:, 0, :self.goal_dim].clone()
+            else:
+                goal_rand = batch.conditions[:, 0].clone()
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
             loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
@@ -161,19 +166,21 @@ class DiffuserCritic(object):
                 last_observation = batch.trajectories[:, -1, :self.observation_dim]
                 last_action = batch.trajectories[:, -1, self.observation_dim:self.obsact_dim]                
                 
-                # hindsight experience goal
+                # hindsight experience goal/reward
                 trajectories = batch.trajectories.clone()
-                # goal = batch.goals.clone()
-                # hidx = np.random.choice(np.arange(self.batch_size), int(self.batch_size/2))
-                goal = trajectories[:, -1, :self.goal_dim].clone()
-                
-                # hindsight experience reward
-                trajectories[:, -1, -2] = self.dataset.normalizer(torch.tensor([1], dtype=torch.float32), 'rewards')
+                if 'Fetch' in self.env_name or 'maze' in self.env_name:
+                    goal = trajectories[:, -1, :self.goal_dim].clone()
+                    trajectories[:, -1, -2] = self.dataset.normalizer(torch.tensor([1], dtype=torch.float32), 'rewards')
+                else:
+                    goal = batch.goals
                 
                 # calculate Q
                 cond = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
                                          self.critic.unnorm(last_action, 'actions'), 
                                          self.critic.unnorm(goal, 'goals'))
+                discount = self.critic.gamma ** reversed(torch.arange(self.horizon))[None].to(cond.device)
+                cond = cond * discount
+                cond = cond.unsqueeze(-1)
                 loss_d = self.diffuser.loss(trajectories, cond, goal)
                 loss_d.backward()
             self.diffuser_optimizer.step()

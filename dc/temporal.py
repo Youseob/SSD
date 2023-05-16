@@ -173,7 +173,7 @@ class TemporalUnet(nn.Module):
     ):
         super().__init__()
 
-        dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
+        dims = [transition_dim + cond_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
         print(f'[ models/temporal ] Channel dimensions: {in_out}')
 
@@ -249,27 +249,26 @@ class TemporalUnet(nn.Module):
             nn.Conv1d(dim, transition_dim, 1),
         )
 
-    def forward(self, x, time, y=None, use_dropout=True, force_dropout=False):
+    def forward(self, x, time, cond, goal, use_dropout=True, force_dropout=False):
         '''
             x : [ batch x horizon x transition ]
             returns : [batch x horizon]
         '''
         if self.calc_energy:
             x_inp = x
-
+        x = torch.cat([x, cond], -1)
         x = einops.rearrange(x, 'b h t -> b t h')
 
         t = self.time_mlp(time)
 
         if self.returns_condition:
-            assert y is not None
-            y_embed = self.returns_mlp(y)
+            goal_embed = self.returns_mlp(goal)
             if use_dropout:
-                mask = self.mask_dist.sample(sample_shape=(y_embed.size(0), 1)).to(y_embed.device)
-                y_embed = mask*y_embed
+                mask = self.mask_dist.sample(sample_shape=(goal_embed.size(0), 1)).to(goal_embed.device)
+                goal_embed = mask*goal_embed
             if force_dropout:
-                y_embed = 0*y_embed
-            t = torch.cat([t, y_embed], dim=-1)
+                goal_embed = 0*goal_embed
+            t = torch.cat([t, goal_embed], dim=-1)
 
         h = []
 

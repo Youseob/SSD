@@ -94,8 +94,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-# condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))
-condition = torch.tensor([0.5]).to(args.device)
+# condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))*2
+condition = torch.tensor([0.3]).to(args.device)
 
 if args.wandb:
     print('Wandb init...')
@@ -107,7 +107,7 @@ if args.wandb:
                dir=wandb_dir,
                )
     # wandb.run.name = f"decreQ_{args.dataset}"
-    wandb.run.name = f"0.5_{args.dataset}"
+    wandb.run.name = f"1_{args.dataset}"
     
 total_reward = 0
 rollout = []
