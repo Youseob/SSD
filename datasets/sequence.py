@@ -12,7 +12,7 @@ from .buffer import ReplayBuffer
 
 
 Batch = namedtuple('Batch', 'trajectories conditions goals')
-ValueBatch = namedtuple('ValueBatch', 'trajectories conditions values')
+ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
     name = str.split(env.name, '-')[0]
@@ -83,12 +83,14 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.path_lengths = fields.path_lengths
             
         self.normalize()
+        if 'Fetch' in env.name or 'maze' in env.name:
+            self.normalize(['goals'])
 
         print(fields)
         # shapes = {key: val.shape for key, val in self.fields.items()}
         # print(f'[ datasets/mujoco ] Dataset fields: {shapes}')
 
-    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs', 'goals']):
+    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs']):
         '''
             normalize fields that will be predicted by the diffusion model
         '''
@@ -135,13 +137,12 @@ class SequenceDataset(torch.utils.data.Dataset):
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
             goals = self.fields.normed_goals[path_ind, end-1]
         else:
-            goals = self.fields.normed_rtgs[path_ind, end-1]
+            goals = self.fields.normed_rtgs[path_ind, start]
         
-        conditions = self.fields.normed_rtgs[path_ind, end-1]
+        rtgs = self.fields.normed_rtgs[path_ind, start:end]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
         trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
-        # trajectories = trajectories.flatten()
-        batch = Batch(trajectories, conditions, goals)
+        batch = Batch(trajectories, rtgs, goals)
         return batch
 
 """

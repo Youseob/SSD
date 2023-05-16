@@ -10,7 +10,7 @@ diffusion_args_to_watch = [
     ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('condition_guidance_w', 'gw'),
+    ('condition_dropout', 'dr'),
     # ('conditional', 'cond'),
 ]
 

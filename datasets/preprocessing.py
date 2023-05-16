@@ -70,9 +70,20 @@ def add_deltas(env):
 def mujoco_set_goals(env):
     env = load_environment(env) if type(env) == str else env
     def _fn(dataset):
-        rtg = atleast_2d(discount_cumsum(dataset['rewards']))
-        dataset['rtgs'] = rtg
-        dataset['goals'] = rtg
+        dataset['rtgs'] = np.zeros_like(dataset['rewards'])
+        dataset['goals'] = np.zeros_like(dataset['rewards'])
+        start = 0
+        for i in range(len(dataset['observations'])):
+            if dataset['timeouts'][i] or dataset['terminals'][i]:
+                rewards = dataset['rewards'][start:i]
+                rtg = discount_cumsum(rewards)
+                dataset['rtgs'][start:i] = rtg
+                dataset['goals'][start:i] = rtg
+                start = i
+        rewards = dataset['rewards'][start:]
+        rtg = discount_cumsum(rewards)
+        dataset['rtgs'][start:] = rtg
+        dataset['goals'][start:] = rtg
         return dataset
     return _fn
         
@@ -84,9 +95,17 @@ def maze2d_set_terminals(env):
 
     def _fn(dataset):
         dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
-        rtg = atleast_2d(discount_cumsum(dataset['rewards']))
-        dataset['rtgs'] = rtg
-        dataset['goals'] = rtg
+        dataset['rtgs'] = np.zeros_like(dataset['rewards'])
+        start = 0
+        for i in range(len(dataset['observations'])):
+            if dataset['timeouts'][i] or dataset['terminals'][i]:
+                rewards = dataset['rewards'][start:i]
+                rtg = discount_cumsum(rewards)
+                dataset['rtgs'][start:i] = rtg
+                start = i
+        rewards = dataset['rewards'][start:]
+        rtg = discount_cumsum(rewards)
+        dataset['rtgs'][start:] = rtg
         
         xy = dataset['observations'][:,:2]
         distances = np.linalg.norm(xy - goal, axis=-1)
@@ -120,10 +139,18 @@ def her_maze2d_set_terminals(env):
 
     def _fn(dataset):
         dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
-        rtg = atleast_2d(discount_cumsum(dataset['rewards']))
-        dataset['rtgs'] = rtg
-        dataset['goals'] = rtg
-        
+        dataset['rtgs'] = np.zeros_like(dataset['rewards'])
+        start = 0
+        for i in range(len(dataset['observations'])):
+            if dataset['timeouts'][i] or dataset['terminals'][i]:
+                rewards = dataset['rewards'][start:i]
+                rtg = discount_cumsum(rewards)
+                dataset['rtgs'][start:i] = rtg
+                start = i
+        rewards = dataset['rewards'][start:]
+        rtg = discount_cumsum(rewards)
+        dataset['rtgs'][start:] = rtg
+            
         her_goal = np.zeros_like(dataset['infos/goal'])
         start = 0
         for end in np.where(dataset['timeouts'])[0]+1:
