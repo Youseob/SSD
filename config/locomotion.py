@@ -22,7 +22,7 @@ eval_args_to_watch = [
     ('n_diffusion_steps', 'T'),
     ('batch_size', 'b'),
     ##
-    ('maxq', 'maxq'),
+    ('condition_dropout', 'dr'),
     ('epi_seed', 's'),
 ]
 
@@ -86,7 +86,7 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [1.0, 1.2, 1.4],
+        'target_rtg': [1.2, 1.4],
         'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
@@ -123,7 +123,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [9999],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],
