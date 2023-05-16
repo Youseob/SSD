@@ -345,7 +345,7 @@ class HindsightCritic(nn.Module):
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, 1),
-                                      nn.Tanh())
+                                      )
 
         self.qf2 = nn.Sequential(nn.Linear(state_dim + action_dim + goal_dim, hidden_dim),
                                       nn.Mish(),
@@ -354,7 +354,7 @@ class HindsightCritic(nn.Module):
                                       nn.Linear(hidden_dim, hidden_dim),
                                       nn.Mish(),
                                       nn.Linear(hidden_dim, 1),
-                                      nn.Tanh())
+                                      )
         self.qf1_target = copy.deepcopy(self.qf1)
         self.qf2_target = copy.deepcopy(self.qf2)
         self.actor = nn.Sequential(nn.Linear(state_dim+goal_dim, hidden_dim),
@@ -366,7 +366,7 @@ class HindsightCritic(nn.Module):
                                    nn.Linear(hidden_dim, hidden_dim),
                                    nn.Mish(),
                                    nn.Linear(hidden_dim, action_dim),
-                                   nn.Tanh())
+                                   )
 
         self.gamma = gamma
         self.n_random = n_random

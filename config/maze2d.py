@@ -22,7 +22,7 @@ eval_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ##
-    ('maxq', 'maxq'),
+    ('condition_dropout', 'dr'),
     ('epi_seed', 's'),
 ]
 
@@ -124,7 +124,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [19999],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],
