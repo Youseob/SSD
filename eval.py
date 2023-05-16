@@ -26,6 +26,7 @@ args = Parser().parse_args(iterparser)
 env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
 action_dim = env.action_space.shape[0]
+observation_dim = env.observation_space.shape[0]
 
 dataset = datasets.SequenceDataset(
     env=args.dataset,
@@ -86,16 +87,15 @@ if 'maze2d' in args.dataset:
     if args.multi: env.set_target()
     ## set conditioning xy position to be the goal
     target = env._target
-    condition = torch.tensor([1]).to(args.device)
 elif 'Fetch' in args.dataset:
     ## set conditioning xyz position to be the goal
     target = env.goal
-    condition = torch.tensor([1]).to(args.device)
 else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-    condition = target
+# condition = (0.95 ** reversed(torch.arange(env.max_episode_steps).to(args.device)))
+condition = torch.tensor([0.5]).to(args.device)
 
 if args.wandb:
     print('Wandb init...')
@@ -106,13 +106,14 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"{args.dataset}"
+    # wandb.run.name = f"decreQ_{args.dataset}"
+    wandb.run.name = f"0.5_{args.dataset}"
     
 total_reward = 0
 rollout = []
 for t in range(env.max_episode_steps):
-    samples = dc.diffuser(to_torch(state).unsqueeze(0), to_torch(condition).unsqueeze(0), to_torch(target).unsqueeze(0))
-    action = to_np(samples)[0, 0, :action_dim]
+    samples = dc.diffuser(to_torch(state).unsqueeze(0), condition.reshape((1,1)), to_torch(target).reshape(1,1))
+    action = to_np(samples)[0, 0, observation_dim:-2]
     rollout.append(state[None, ].copy())
         
     next_state, reward, done, _ = env.step(action)

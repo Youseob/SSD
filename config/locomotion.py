@@ -86,7 +86,7 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [1.5, 1.2, 1.4],
+        'target_rtg': [1.0, 1.2, 1.4],
         'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
@@ -122,7 +122,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_gw{condition_guidance_w}'],
-        'diffusion_epoch': [39999],
+        'diffusion_epoch': [9999],
 
         'verbose': [False],
         'suffix': ['0'],
