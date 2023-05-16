@@ -116,12 +116,13 @@ base = {
         ## diffusion model
         'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'condition_guidance_w': [1.2],
-        'maxq': [True],
-        'conditional': [True],
+        # 'condition_guidance_w': [1.2],
+        'condition_dropout': [0.25],
+        # 'maxq': [True],
+        # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_gw{condition_guidance_w}'],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
         'diffusion_epoch': [9999],
 
         'verbose': [False],
