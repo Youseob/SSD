@@ -443,7 +443,7 @@ class HindsightCritic(nn.Module):
         #                     self.norm(goals, 'goals'))
         # action_pi = samples[:, :-1, self.observation_dim:-2]        
         # goals_temp = einops.repeat(goals, 'b d -> b n d', n=horizon-1)
-        next_q1, next_q2 = self.forward_target(next_observation, action, goal_rand.repeat(1, horizon-1).unsqueeze(-1))
+        next_q1, next_q2 = self.forward_target(next_observation, action, goal_rand.unsqueeze(1).repeat(1, horizon-1, 1))
         next_q = torch.min(next_q1, next_q2)
         td_target = torch.cat([torch.ones(batch_size, horizon-1, 1).to(device), self.gamma * next_q], 0)
         # td_target = torch.zeros((batch_size, horizon-1, 1), device=device)
@@ -454,8 +454,8 @@ class HindsightCritic(nn.Module):
         #         td_target[i] = (self.gamma ** torch.arange(horizon-1, 0, -1).to(device))[...,None] * next_q[i]
 
         # calaulate q value
-        pred_q1, pred_q2 = self.forward(observation_cat, action_cat, goals.repeat(1, horizon-1).unsqueeze(-1))
-        targ_q1, targ_q2 = self.forward_target(observation_cat, action_cat, goals.repeat(1, horizon-1).unsqueeze(-1))
+        pred_q1, pred_q2 = self.forward(observation_cat, action_cat, goals.unsqueeze(1).repeat(1, horizon-1, 1))
+        targ_q1, targ_q2 = self.forward_target(observation_cat, action_cat, goals.unsqueeze(1).repeat(1, horizon-1, 1))
         targ_q = torch.min(targ_q1, targ_q2)
         
         # sample negative action
