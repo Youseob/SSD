@@ -163,24 +163,24 @@ base = {
         large: 600
 '''
 
-# maze2d_umaze_v1 = {
-#     'diffusion': {
-#         'horizon': [128],
-#         'n_diffusion_steps': [64],
-#     },
-#     'evaluate': {
-#         'horizon': [128],
-#         'n_diffusion_steps': [64],
-#     },
-# }
+maze2d_umaze_v1 = {
+    'diffusion': {
+        'horizon': [128],
+        'n_diffusion_steps': [64],
+    },
+    'evaluate': {
+        'horizon': [128],
+        'n_diffusion_steps': [64],
+    },
+}
 
-# maze2d_large_v1 = {
-#     'diffusion': {
-#         'horizon': [384],
-#         'n_diffusion_steps': [256],
-#     },
-#     'evaluate': {
-#         'horizon': [384],
-#         'n_diffusion_steps': [256],
-#     },
-# }
+maze2d_large_v1 = {
+    'diffusion': {
+        'horizon': [384],
+        'n_diffusion_steps': [256],
+    },
+    'evaluate': {
+        'horizon': [384],
+        'n_diffusion_steps': [256],
+    },
+}
