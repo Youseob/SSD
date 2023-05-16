@@ -418,7 +418,7 @@ class HindsightCritic(nn.Module):
         choice = np.random.choice(batch_size, int(batch_size//2), replace=False)
         choice.sort()
         choice = to_torch(choice)
-        # at_goal = torch.zeros((batch_size,)).bool()
+        assert len(goal_rand) == batch_size
         for i in range(batch_size):
             if i in choice: 
                 goals[i] = next_observation[i, -1, :self.goal_dim].clone()
