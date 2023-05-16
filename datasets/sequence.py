@@ -11,7 +11,7 @@ from .normalization import DatasetNormalizer
 from .buffer import ReplayBuffer
 
 
-Batch = namedtuple('Batch', 'trajectories conditions goals')
+Batch = namedtuple('Batch', 'trajectories goals rtgs')
 ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
@@ -129,20 +129,21 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         observations = self.fields.normed_observations[path_ind, start:end]
         actions = self.fields.normed_actions[path_ind, start:end]
-        rewards = self.fields.normed_rewards[path_ind, start:end]
-        next_observations = self.fields.normed_next_observations[path_ind, start:end]
+        # next_observations = self.fields.normed_next_observations[path_ind, start:end]
         terminals = self.fields.terminals[path_ind, start:end]
 
         # conditions = self.get_conditions(observations)
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
+            rewards = self.fields.rewards[path_ind, start:end]
             goals = self.fields.normed_goals[path_ind, end-1]
         else:
+            rewards = self.fields.normed_rewards[path_ind, start:end]
             goals = self.fields.normed_rtgs[path_ind, start]
         
         rtgs = self.fields.normed_rtgs[path_ind, start:end]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
         trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
-        batch = Batch(trajectories, rtgs, goals)
+        batch = Batch(trajectories, goals, rtgs)
         return batch
 
 """

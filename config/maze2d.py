@@ -31,7 +31,7 @@ base = {
     'diffusion': {
         ## model
         'horizon': [16],
-        'n_diffusion_steps': [50],
+        'n_diffusion_steps': [100],
         'action_weight': [1],
         'loss_weights': [None],
         'loss_discount': [1],
