@@ -138,7 +138,7 @@ class DiffuserCritic(object):
                 # any states drawn from D
                 goal_rand = batch.trajectories[:, 0, :self.goal_dim].clone()
             else:
-                goal_rand = batch.conditions[:, 0].clone()
+                goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
             loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
@@ -163,25 +163,31 @@ class DiffuserCritic(object):
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
+                rand_goal = batch.trajectories[:, np.random.randint(self.horizon, size=1), :self.goal_dim].clone().squeeze()
+                batch = next(self.dataloader_train)
+                batch = batch_to_device(batch)
                 last_observation = batch.trajectories[:, -1, :self.observation_dim]
                 last_action = batch.trajectories[:, -1, self.observation_dim:self.obsact_dim]                
                 
                 # hindsight experience goal/reward
-                trajectories = batch.trajectories.clone()
+                trajectories = batch.trajectories.repeat(2, 1, 1)
+                cond = batch.rtgs.repeat(2, 1, 1)
                 if 'Fetch' in self.env_name or 'maze' in self.env_name:
-                    goal = trajectories[:, -1, :self.goal_dim].clone()
-                    trajectories[:, -1, -2] = self.dataset.normalizer(torch.tensor([1], dtype=torch.float32), 'rewards')
+                    goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim].clone(), rand_goal], 0)
+                    # for g = s_(t+1)
+                    q_hind = 1
+                    # for g = rand_goal
+                    q_rand = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
+                                            self.critic.unnorm(last_action, 'actions'), 
+                                            self.critic.unnorm(rand_goal, 'goals'))
+                    discount = self.critic.gamma ** (reversed(torch.arange(self.horizon).to('cuda:0')))
+                    trajectories[:self.batch_size, :, -2] = q_hind * discount
+                    trajectories[self.batch_size:, :, -2] = torch.matmul(q_rand, discount[None])
+                    
                 else:
-                    goal = batch.goals
+                    goal = batch.goals.repeat(2, 1)
                 
-                # calculate Q
-                cond = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
-                                         self.critic.unnorm(last_action, 'actions'), 
-                                         self.critic.unnorm(goal, 'goals'))
-                discount = self.critic.gamma ** reversed(torch.arange(self.horizon))[None].to(cond.device)
-                cond = cond * discount
-                cond = cond.unsqueeze(-1)
-                loss_d = self.diffuser.loss(trajectories, cond, goal)
+                loss_d = self.diffuser.loss(trajectories, goal, None)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             
