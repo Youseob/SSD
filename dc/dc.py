@@ -98,13 +98,13 @@ class DiffuserCritic(object):
         #     self.dataset, batch_size=train_batch_size, num_workers=0, shuffle=True, pin_memory=False
         # ))
         self.dataloader_train = cycle(torch.utils.data.DataLoader(
-            train, batch_size=train_batch_size, num_workers=0, shuffle=True, pin_memory=False
+            train, batch_size=train_batch_size, num_workers=0, shuffle=True, pin_memory=False, drop_last=True
         ))
         self.dataloader_val = cycle(torch.utils.data.DataLoader(
-            val, batch_size=train_batch_size, num_workers=0, shuffle=True, pin_memory=False
+            val, batch_size=train_batch_size, num_workers=0, shuffle=True, pin_memory=False, drop_last=True
         ))
         self.dataloader_vis = cycle(torch.utils.data.DataLoader(
-            self.dataset, batch_size=1, num_workers=0, shuffle=True, pin_memory=False
+            self.dataset, batch_size=1, num_workers=0, shuffle=True, pin_memory=False, drop_last=True
         ))
         
         self.batch_size = train_batch_size
