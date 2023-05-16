@@ -207,7 +207,7 @@ class DiffuserCritic(object):
                 # any states drawn from D
                 goal_rand_val = batch_val.trajectories[:, 0, :self.goal_dim].clone()
             else:
-                goal_rand_val = batch_val.conditions[:, 0].clone()
+                goal_rand_val = batch_val.rtgs[:, 0].clone()
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
