@@ -396,7 +396,7 @@ class HindsightCritic(nn.Module):
     
     def forward_actor(self, state, goal):
         x = torch.cat([state, goal], dim=-1)
-        return self.actor(x)
+        return torch.clamp(self.actor(x), -1, 1)
     
     def q1(self, state, action, goal):
         x = torch.cat([state, action, goal], dim=-1)
