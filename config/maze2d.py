@@ -45,8 +45,8 @@ base = {
         'preprocess_fns': [['her_maze2d_set_terminals']],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'use_padding': [False],
-        'max_path_length': [240],
-        'max_n_episodes': [10685],
+        'max_path_length': [600], # umaze:250, medium: 500, large: 600
+        'max_n_episodes': [20000],
         
         ## diffuser
         'conditional': [True],
@@ -174,7 +174,16 @@ maze2d_umaze_v1 = {
         'n_diffusion_steps': [100],
     },
 }
-
+maze2d_medium_v1 = {
+    'diffusion': {
+        'horizon': [256],
+        'n_diffusion_steps': [256],
+    },
+    'evaluate': {
+        'horizon': [256],
+        'n_diffusion_steps': [256],
+    },
+}
 maze2d_large_v1 = {
     'diffusion': {
         'horizon': [384],
