@@ -27,6 +27,7 @@ env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
 action_dim = env.action_space.shape[0]
 observation_dim = env.observation_space.shape[0]
+horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
     env=args.dataset,
@@ -94,9 +95,9 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-# condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
-condition = torch.zeros((1, args.horizon, 1)).to(args.device)
-condition[:, -1, :] = 1
+condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
+# condition = torch.ones((1, args.horizon, 1)).to(args.device) 
+# condition[:, -1, :] = 1
 
 if args.wandb:
     print('Wandb init...')
@@ -112,6 +113,7 @@ if args.wandb:
 
 total_reward = 0
 rollout = []
+actions_list = np.array([])
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
@@ -120,17 +122,25 @@ for t in range(env.max_episode_steps):
         if at_goal:
             action = (target - state[:goal_dim]) #+ (next_waypoint[goal_dim:]-state[goal_dim:])
         else:
-            normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
-            normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
-            samples = dc.ema_model(normed_state, condition, normed_target)
-            action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-1], 'actions')
+            if len(actions_list) == 0:
+                normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
+                normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
+                samples = dc.ema_model(normed_state, condition, normed_target)
+                actions_list = dataset.normalizer.unnormalize(to_np(samples)[0, :, observation_dim:], 'actions')
+            action = actions_list[0]
+            actions_list = np.delete(actions_list, 0, 0)
+            
+            # normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
+            # normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
+            # samples = dc.ema_model(normed_state, condition, normed_target)
+            # action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-1], 'actions')
             # next_waypoint = dataset.normalizer.unnormalize(to_np(samples)[0, 1, :observation_dim], 'observations')
             # action = next_waypoint[:goal_dim] - state[:goal_dim] + (next_waypoint[goal_dim:] - state[goal_dim:])
     else:
         normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
         normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
-        samples = dc.diffuser(normed_state, condition, normed_target)
-        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-1], 'actions')
+        samples = dc.ema_model(normed_state, condition, normed_target)
+        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:], 'actions')
         
     rollout.append(state[None, ].copy())
         
@@ -166,8 +176,7 @@ for t in range(env.max_episode_steps):
         break
     state = next_state
 
-rollout = np.stack(rollout, axis=1)
-dc.render_samples(rollout, args.epi_seed)
+dc.render_samples(np.stack(rollout, axis=1), args.epi_seed)
 
 if args.wandb:
     wandb.finish()
