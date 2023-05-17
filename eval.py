@@ -129,7 +129,7 @@ for t in range(env.max_episode_steps):
         normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
         normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
         samples = dc.diffuser(normed_state, normed_target)
-        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-2], 'actions')
+        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-1], 'actions')
         
     rollout.append(state[None, ].copy())
         

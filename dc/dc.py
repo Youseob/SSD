@@ -168,7 +168,7 @@ class DiffuserCritic(object):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
                 last_observation = batch.trajectories[:, -1, :self.observation_dim]
-                last_action = batch.trajectories[:, -1, self.observation_dim:-1]                
+                last_action = batch.trajectories[:, -1, self.observation_dim:]                
                 
                 # hindsight experience goal/reward
                 trajectories = batch.trajectories.repeat(2, 1, 1)
