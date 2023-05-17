@@ -175,11 +175,17 @@ class DiffuserCritic(object):
                     # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
                     goal = trajectories[:, -1, :self.goal_dim]
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                    q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                                            self.critic.unnorm(action, 'actions'), 
+                                            self.critic.unnorm(goal_rpt, 'goals')).mean(1)
                 else:
-                    rand_rtg = batch.rtgs[:, np.random.randint(self.horizon, size=1)].reshape(batch.goals.shape).clone()
-                    goal = torch.cat([batch.goals, rand_rtg], 0)
+                    goal = batch.rtgs[:, -1].clone()
+                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                    q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                                            self.critic.unnorm(action, 'actions'), 
+                                            goal_rpt).mean(1)
                 # for g = s_(t+1)
-                q_hind = 1
+                # q_hind = 1
                 # for g = rand_goal
                 q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                         self.critic.unnorm(action, 'actions'), 
