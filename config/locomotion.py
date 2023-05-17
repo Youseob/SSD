@@ -115,7 +115,7 @@ base = {
 
         ## diffusion model
         'horizon': [16], #None,
-        'n_diffusion_steps': [50],
+        'n_diffusion_steps': [100],
         # 'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         # 'maxq': [True],
