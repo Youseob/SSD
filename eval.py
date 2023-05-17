@@ -95,9 +95,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
-# condition = torch.ones((1, args.horizon, 1)).to(args.device) 
-# condition[:, -1, :] = 1
+condition = torch.ones((1, 1)).to(args.device) 
 
 if args.wandb:
     print('Wandb init...')
@@ -108,27 +106,31 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"{args.dataset}"
+    wandb.run.name = f"final_{args.dataset}"
     # wandb.run.name = f"Positional_{args.dataset}"
 
 total_reward = 0
 rollout = []
-actions_list = np.array([])
+actions_list = []
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
         if at_goal:
-            action = (target - state[:goal_dim]) #+ (next_waypoint[goal_dim:]-state[goal_dim:])
+            # action = (target - state[:goal_dim]) + (next_waypoints[0, goal_dim:]-state[goal_dim:])
+            action = (target - state[:goal_dim]) - state[goal_dim:]
+            actions_list = []
         else:
             if len(actions_list) == 0:
                 normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
                 normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
                 samples = dc.ema_model(normed_state, condition, normed_target)
                 actions_list = dataset.normalizer.unnormalize(to_np(samples)[0, :, observation_dim:], 'actions')
+                # next_waypoints = dataset.normalizer.unnormalize(to_np(samples)[0, 1:, :observation_dim], 'observations')
             action = actions_list[0]
             actions_list = np.delete(actions_list, 0, 0)
+            # next_waypoints = np.delete(next_waypoints, 0, 0)
             
             # normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
             # normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)

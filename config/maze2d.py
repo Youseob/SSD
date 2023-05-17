@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16],
+        'horizon': [128],
         'n_diffusion_steps': [100],
         'action_weight': [1],
         'loss_weights': [None],
@@ -117,14 +117,14 @@ base = {
 
         ## diffusion model
         'horizon': [128], #None,
-        'n_diffusion_steps': [50],
+        'n_diffusion_steps': [100],
         # 'maxq': [False],
         'condition_dropout': [0.25],
         # 'conditional': [True],
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [19999],
+        'diffusion_epoch': [29999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -171,7 +171,7 @@ maze2d_umaze_v1 = {
     },
     'evaluate': {
         'horizon': [128],
-        'n_diffusion_steps': [64],
+        'n_diffusion_steps': [100],
     },
 }
 
