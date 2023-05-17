@@ -181,13 +181,13 @@ class DiffuserCritic(object):
                                             self.critic.unnorm(last_action, 'actions'), 
                                             self.critic.unnorm(rand_goal, 'goals'))
                     discount = self.critic.gamma ** (reversed(torch.arange(self.horizon).to('cuda:0')))
-                    trajectories[:self.batch_size, :, -2] = q_hind * discount
-                    trajectories[self.batch_size:, :, -2] = torch.matmul(q_rand, discount[None])
+                    values = torch.cat([q_hind * discount, torch.matmul(q_rand, discount[None])], 0)
                     
                 else:
                     goal = batch.goals.repeat(2, 1)
+                    values = goal
                 
-                loss_d = self.diffuser.loss(trajectories, goal, None)
+                loss_d = self.diffuser.loss(trajectories, values, goal)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             

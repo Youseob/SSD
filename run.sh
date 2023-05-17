@@ -1,6 +1,6 @@
 #!/bin/bash
 cd ~/DC
-for diffusion_epoch in 99999
+for diffusion_epoch in 69999 79999 89999 99999
 do
 for epi_seed in {0..9}
 do
