@@ -112,32 +112,36 @@ if args.wandb:
 total_reward = 0
 rollout = []
 actions_list = []
+next_waypoint_list = []
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
         if at_goal:
-            # action = (target - state[:goal_dim]) + (next_waypoints[0, goal_dim:]-state[goal_dim:])
             action = (target - state[:goal_dim]) - state[goal_dim:]
             actions_list = []
+            next_waypoint_list = []
         else:
-            if len(actions_list) == 0:
+            # Torque control
+            # if len(actions_list) == 0:
+            #     normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
+            #     normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
+            #     samples = dc.ema_model(normed_state, condition, normed_target)
+            #     actions_list = dataset.normalizer.unnormalize(to_np(samples)[0, :, observation_dim:], 'actions')
+            # action = actions_list[0]
+            # actions_list = np.delete(actions_list, 0, 0)
+            
+            # Positional control
+            if len(next_waypoint_list) == 0:
                 normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
                 normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
                 samples = dc.ema_model(normed_state, condition, normed_target)
-                actions_list = dataset.normalizer.unnormalize(to_np(samples)[0, :, observation_dim:], 'actions')
-                # next_waypoints = dataset.normalizer.unnormalize(to_np(samples)[0, 1:, :observation_dim], 'observations')
-            action = actions_list[0]
-            actions_list = np.delete(actions_list, 0, 0)
-            # next_waypoints = np.delete(next_waypoints, 0, 0)
+                next_waypoint_list = dataset.normalizer.unnormalize(to_np(samples)[0, 1:, :observation_dim], 'observations')
+            action = next_waypoint_list[0, :goal_dim] - state[:goal_dim] + next_waypoint_list[0, goal_dim:] - state[goal_dim:]
+            next_waypoint_list = np.delete(next_waypoint_list, 0, 0)
             
-            # normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
-            # normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
-            # samples = dc.ema_model(normed_state, condition, normed_target)
-            # action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:-1], 'actions')
-            # next_waypoint = dataset.normalizer.unnormalize(to_np(samples)[0, 1, :observation_dim], 'observations')
-            # action = next_waypoint[:goal_dim] - state[:goal_dim] + (next_waypoint[goal_dim:] - state[goal_dim:])
+
     else:
         normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
         normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
