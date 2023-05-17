@@ -94,8 +94,9 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
-# condition = torch.ones((1, args.horizon, 1)).to(args.device)
+# condition = (dc.critic.gamma ** reversed(torch.arange(args.horizon).to(args.device))).reshape(1, args.horizon, 1)
+condition = torch.zeros((1, args.horizon, 1)).to(args.device)
+condition[:, -1, :] = 1
 
 if args.wandb:
     print('Wandb init...')
