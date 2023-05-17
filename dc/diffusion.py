@@ -174,6 +174,7 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop(self, shape, state, cond, goal, return_diffusion=False):
         batch_size = shape[0]
         x = 0.5 * torch.randn(shape, device=self.device)
+        # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
         x[:, :, -1] = cond.reshape(batch_size, -1).clone()
         
@@ -183,6 +184,7 @@ class GaussianDiffusion(nn.Module):
         for i in reversed(range(0, self.n_timesteps)):
             timesteps = torch.full((batch_size,), i, device=self.device, dtype=torch.long)
             x = self.p_sample(x, timesteps, cond, goal)
+            # apply conditioning
             x[:, 0, :self.observation_dim] = state.clone()
             x[:, :, -1] = cond.reshape(batch_size, -1).clone()
                         
@@ -219,6 +221,7 @@ class GaussianDiffusion(nn.Module):
         x_start = x_start.float()
         
         x_noisy = self.q_sample(x_start, t, noise)
+        # apply conditioning
         x_noisy[:, 0, :self.observation_dim] = state.clone()
         x_noisy[:, :, -1] = cond.reshape(b, -1).clone()
         
@@ -234,6 +237,7 @@ class GaussianDiffusion(nn.Module):
             x_recon.clamp_(-1., 1.)
         
         if not self.predict_epsilon:
+            # apply conditioning
             x_recon[:, 0, :self.observation_dim] = state.clone()
             x_recon[:, :, -1] = cond.reshape(b, h).clone()
         
