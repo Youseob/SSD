@@ -16,7 +16,7 @@ class GaussianDiffusion(nn.Module):
         self.observation_dim = observation_dim
         self.action_dim = action_dim
         self.obsact_dim = observation_dim + action_dim
-        self.transition_dim = observation_dim + action_dim + 2
+        self.transition_dim = observation_dim + action_dim + 1
         self.horizon = horizon
         self.goal_dim = goal_dim
         
@@ -175,6 +175,7 @@ class GaussianDiffusion(nn.Module):
         batch_size = shape[0]
         x = 0.5 * torch.randn(shape, device=self.device)
         x[:, 0, :self.observation_dim] = state.clone()
+        x[:, :, -1] = cond.reshape(batch_size, -1).clone()
         
         if return_diffusion: diffusion = [x]
         
@@ -183,7 +184,8 @@ class GaussianDiffusion(nn.Module):
             timesteps = torch.full((batch_size,), i, device=self.device, dtype=torch.long)
             x = self.p_sample(x, timesteps, cond, goal)
             x[:, 0, :self.observation_dim] = state.clone()
-            
+            x[:, :, -1] = cond.reshape(batch_size, -1).clone()
+                        
             progress.update({'t': i})
             if return_diffusion: diffusion.append(x)
         progress.close()
@@ -213,11 +215,12 @@ class GaussianDiffusion(nn.Module):
     
     def p_losses(self, x_start, t, state, cond, goal):
         noise = torch.randn_like(x_start)
-        b, *_ = x_start.shape
+        b, h, *_ = x_start.shape
         x_start = x_start.float()
         
         x_noisy = self.q_sample(x_start, t, noise)
         x_noisy[:, 0, :self.observation_dim] = state.clone()
+        x_noisy[:, :, -1] = cond.reshape(b, -1).clone()
         
         if self.model.calc_energy:
             assert self.predict_epsilon
@@ -232,6 +235,7 @@ class GaussianDiffusion(nn.Module):
         
         if not self.predict_epsilon:
             x_recon[:, 0, :self.observation_dim] = state.clone()
+            x_recon[:, :, -1] = cond.reshape(b, h).clone()
         
         assert noise.shape == x_recon.shape
         
@@ -244,7 +248,7 @@ class GaussianDiffusion(nn.Module):
     
     def loss(self, trajectories, cond, goal):
         batch_size = len(trajectories)
-        x = trajectories
+        x = torch.cat([trajectories, cond], -1)
         state = trajectories[:, 0, :self.observation_dim]
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
         loss = self.p_losses(x, t, state, cond, goal)

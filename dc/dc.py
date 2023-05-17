@@ -65,7 +65,7 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnet(self.horizon, self.obsact_dim+2, goal_dim, conditional=conditional, \
+        self.model = TemporalUnet(self.horizon, self.obsact_dim + 1, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
@@ -164,29 +164,29 @@ class DiffuserCritic(object):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
                 rand_goal = batch.trajectories[:, np.random.randint(self.horizon, size=1), :self.goal_dim].clone().squeeze()
+                rand_rtg = batch.rtgs[:, np.random.randint(self.horizon, size=1)].clone()
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
                 last_observation = batch.trajectories[:, -1, :self.observation_dim]
-                last_action = batch.trajectories[:, -1, self.observation_dim:self.obsact_dim]                
+                last_action = batch.trajectories[:, -1, self.observation_dim:-1]                
                 
                 # hindsight experience goal/reward
                 trajectories = batch.trajectories.repeat(2, 1, 1)
-                cond = batch.rtgs.repeat(2, 1, 1)
+                # cond = batch.rtgs.repeat(2, 1, 1)
                 if 'Fetch' in self.env_name or 'maze' in self.env_name:
                     goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim].clone(), rand_goal], 0)
-                    # for g = s_(t+1)
-                    q_hind = 1
-                    # for g = rand_goal
-                    q_rand = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
-                                            self.critic.unnorm(last_action, 'actions'), 
-                                            self.critic.unnorm(rand_goal, 'goals'))
-                    discount = self.critic.gamma ** (reversed(torch.arange(self.horizon).to('cuda:0')))
-                    values = torch.cat([q_hind * discount, torch.matmul(q_rand, discount[None])], 0)
-                    
                 else:
-                    goal = batch.goals.repeat(2, 1)
-                    values = goal
-                
+                    goal = torch.cat([batch.goals, rand_rtg], 0)
+                # for g = s_(t+1)
+                q_hind = 1
+                # for g = rand_goal
+                q_rand = self.critic.q_min(self.critic.unnorm(last_observation, 'observations'), 
+                                        self.critic.unnorm(last_action, 'actions'), 
+                                        self.critic.unnorm(rand_goal, 'goals'))
+                discount = self.critic.gamma ** (reversed(torch.arange(self.horizon).to('cuda:0')))[None]
+                values = torch.cat([q_hind * discount.repeat(self.batch_size, 1), q_rand * discount], 0)
+                values = values.unsqueeze(-1)
+                    
                 loss_d = self.diffuser.loss(trajectories, values, goal)
                 loss_d.backward()
             self.diffuser_optimizer.step()

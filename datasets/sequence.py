@@ -11,7 +11,7 @@ from .normalization import DatasetNormalizer
 from .buffer import ReplayBuffer
 
 
-Batch = namedtuple('Batch', 'trajectories goals rtgs')
+Batch = namedtuple('Batch', 'trajectories rtgs goals')
 ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
@@ -142,8 +142,9 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         rtgs = self.fields.normed_rtgs[path_ind, start:end]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
-        trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
-        batch = Batch(trajectories, goals, rtgs)
+        # trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
+        trajectories = np.concatenate([observations, actions], axis=-1)
+        batch = Batch(trajectories, rtgs, goals)
         return batch
 
 """
