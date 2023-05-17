@@ -163,8 +163,7 @@ class DiffuserCritic(object):
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
-                rand_goal = batch.trajectories[:, np.random.randint(self.horizon, size=1), :self.goal_dim].clone().squeeze()
-                rand_rtg = batch.rtgs[:, np.random.randint(self.horizon, size=1)].clone()
+                rand_goal = batch.trajectories[:, np.random.randint(self.horizon, size=1), :self.goal_dim].reshape(self.batch_size, -1).clone()
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
                 last_observation = batch.trajectories[:, -1, :self.observation_dim]
@@ -176,6 +175,7 @@ class DiffuserCritic(object):
                 if 'Fetch' in self.env_name or 'maze' in self.env_name:
                     goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim].clone(), rand_goal], 0)
                 else:
+                    rand_rtg = batch.rtgs[:, np.random.randint(self.horizon, size=1)].reshape(batch.goals.shape).clone()
                     goal = torch.cat([batch.goals, rand_rtg], 0)
                 # for g = s_(t+1)
                 q_hind = 1
