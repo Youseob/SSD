@@ -84,11 +84,11 @@ utils.report_parameters(dc.diffuser)
 utils.report_parameters(dc.critic)
 # utils.setup_dist()
 
-print('Testing forward...', end=' ', flush=True)
-batch = utils.batchify(dataset[0])
-loss = dc.diffuser.loss(*batch)
-loss.backward()
-print('✓')
+# print('Testing forward...', end=' ', flush=True)
+# batch = utils.batchify(dataset[0])
+# loss = dc.diffuser.loss(*batch)
+# loss.backward()
+# print('✓')
 
 n_epochs = int(args.n_train_steps // args.n_steps_per_epoch)
 for i in range(n_epochs):

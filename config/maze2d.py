@@ -124,7 +124,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [9999],
+        'diffusion_epoch': [19999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -167,7 +167,7 @@ base = {
 maze2d_umaze_v1 = {
     'diffusion': {
         'horizon': [128],
-        'n_diffusion_steps': [64],
+        'n_diffusion_steps': [100],
     },
     'evaluate': {
         'horizon': [128],

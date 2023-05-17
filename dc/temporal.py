@@ -200,7 +200,7 @@ class TemporalUnet(nn.Module):
 
         if self.returns_condition:
             self.returns_mlp = nn.Sequential(
-                        nn.Linear(cond_dim, dim),
+                        nn.Linear(cond_dim + 1, dim),
                         act_fn,
                         nn.Linear(dim, dim * 4),
                         act_fn,
@@ -249,7 +249,7 @@ class TemporalUnet(nn.Module):
             nn.Conv1d(dim, transition_dim, 1),
         )
 
-    def forward(self, x, time, cond, goal, use_dropout=True, force_dropout=False):
+    def forward(self, x, time, y, use_dropout=True, force_dropout=False):
         '''
             x : [ batch x horizon x transition ]
             returns : [batch x horizon]
@@ -262,7 +262,7 @@ class TemporalUnet(nn.Module):
         t = self.time_mlp(time)
 
         if self.returns_condition:
-            goal_embed = self.returns_mlp(goal)
+            goal_embed = self.returns_mlp(y)
             if use_dropout:
                 mask = self.mask_dist.sample(sample_shape=(goal_embed.size(0), 1)).to(goal_embed.device)
                 goal_embed = mask*goal_embed
