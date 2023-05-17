@@ -123,7 +123,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [99999],
+        'diffusion_epoch': [69999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -167,9 +167,8 @@ hopper_medium_expert_v2 = {
 
 halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert_v2 = {
     'diffusion': {
-        'horizon': 4,
-        'dim_mults': (1, 4, 8),
-        'attention': True,
+        'horizon': [4],
+        'dim_mults': [(1, 4, 8)],
     },
     'values': {
         'horizon': 4,
