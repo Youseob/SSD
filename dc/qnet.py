@@ -416,18 +416,15 @@ class HindsightCritic(nn.Module):
         observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
         observation_cat = observation.repeat(2,1)
         action_cat = action.repeat(2,1)
-        if 'Fetch' in self.env_name or 'maze' in self.env_name:
-            goal_rand = self.unnorm(goal_rand, 'goals')
-        
-        device = trajectories.device
-        
         # hindsight goals
         if 'Fetch' in self.env_name or 'maze' in self.env_name:
             # unnormalized value
+            goal_rand = self.unnorm(goal_rand, 'goals')
             goals = torch.cat([next_observation[:, :self.goal_dim], goal_rand], 0)
         else:
             # normalized value
-            goals = torch.cat([batch.goals, goal_rand], 0)
+            goals = torch.cat([batch.goals, goal_rand], 0)        
+        device = trajectories.device
         
         # hindsight values R
         values = torch.ones((batch_size, 1)).to(device)
