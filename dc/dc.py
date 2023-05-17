@@ -270,7 +270,7 @@ class DiffuserCritic(object):
         '''
             renders samples from (ema) diffusion model
         '''
-        rollout = self.dataset.normalizer.unnormalize(rollout, 'observations')
+        # rollout = self.dataset.normalizer.unnormalize(rollout, 'observations')
 
         savepath = os.path.join(self.logdir, f'sample-{self.step}-{trial}.png')
         self.renderer.composite(savepath, rollout)
