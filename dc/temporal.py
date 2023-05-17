@@ -173,7 +173,7 @@ class TemporalUnet(nn.Module):
     ):
         super().__init__()
 
-        dims = [transition_dim , *map(lambda m: dim * m, dim_mults)]
+        dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
         print(f'[ models/temporal ] Channel dimensions: {in_out}')
 
@@ -249,13 +249,14 @@ class TemporalUnet(nn.Module):
             nn.Conv1d(dim, transition_dim, 1),
         )
 
-    def forward(self, x, time, goal, use_dropout=True, force_dropout=False):
+    def forward(self, x, time, cond, goal, use_dropout=True, force_dropout=False):
         '''
             x : [ batch x horizon x transition ]
             returns : [batch x horizon]
         '''
         if self.calc_energy:
             x_inp = x
+        # x = torch.cat([x, cond], -1)
         x = einops.rearrange(x, 'b h t -> b t h')
 
         t = self.time_mlp(time)
