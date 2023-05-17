@@ -124,7 +124,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [99999],
+        'diffusion_epoch': [9999],
 
         'verbose': [False],
         'suffix': ['0'],

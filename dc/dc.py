@@ -173,7 +173,7 @@ class DiffuserCritic(object):
                 trajectories = batch.trajectories.repeat(2, 1, 1)
                 # cond = batch.rtgs.repeat(2, 1, 1)
                 if 'Fetch' in self.env_name or 'maze' in self.env_name:
-                    goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim].clone(), rand_goal], 0)
+                    goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
                 else:
                     rand_rtg = batch.rtgs[:, np.random.randint(self.horizon, size=1)].reshape(batch.goals.shape).clone()
                     goal = torch.cat([batch.goals, rand_rtg], 0)
