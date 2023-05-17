@@ -497,9 +497,9 @@ class HindsightCritic(nn.Module):
     
     def unnorm_transition(self, trajectories):
         observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
-        action = self.unnorm(trajectories[:, :-1, self.observation_dim:-1], 'actions')
+        action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
         next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
-        next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:-1], 'actions')
+        next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions')
         # reward = self.unnorm(trajectories[:, 0, -2], 'rewards').reshape((batch_size,1, 1))
         # goals = next_observation[:, -1, :self.goal_dim].clone()
         
