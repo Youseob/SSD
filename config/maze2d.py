@@ -92,7 +92,7 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [False],
+        'multi': [True],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4], 
@@ -105,12 +105,13 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
+        'control': ['position'],
 
         ## serialization
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/dc'],
+        'prefix': ['eval/final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],

@@ -7,8 +7,13 @@ from d4rl import reverse_normalized_score, get_normalized_score
 
 import datasets
 from dc.dc import DiffuserCritic
+from dc.policy import *
 import utils
 from utils.arrays import to_torch, to_np
+
+##############################################################################
+################################ Config setup ################################
+##############################################################################
 
 class IterParser(utils.HparamEnv):
     dataset: str = 'hopper-medium-expert-v2'
@@ -22,6 +27,10 @@ class Parser(utils.Parser):
     cid: float = 0
 
 args = Parser().parse_args(iterparser)
+
+##############################################################################
+################################### Setup ####################################
+##############################################################################
 
 env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
@@ -78,8 +87,20 @@ dc = DiffuserCritic(
     label_freq=int(args.n_train_steps // args.n_saves),
     wandb=args.wandb,
 )
-
 dc.load(args.diffusion_epoch)
+
+if args.control == 'torque':
+    policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+elif args.control == 'position':
+    policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+elif args.control == 'every':
+    policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+
+
+
+##############################################################################
+############################## Start iteration ###############################
+##############################################################################
 
 state = env.reset()
 
@@ -95,7 +116,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) 
+condition = torch.ones((1, 1)).to(args.device) * 2
 
 if args.wandb:
     print('Wandb init...')
@@ -106,47 +127,18 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"final_{args.dataset}"
+    wandb.run.name = f"2.0_{args.dataset}"
     # wandb.run.name = f"Positional_{args.dataset}"
 
 total_reward = 0
 rollout = []
-actions_list = []
-next_waypoint_list = []
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
-        if at_goal:
-            action = (target - state[:goal_dim]) - state[goal_dim:]
-            actions_list = []
-            next_waypoint_list = []
-        else:
-            # Torque control
-            # if len(actions_list) == 0:
-            #     normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
-            #     normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
-            #     samples = dc.ema_model(normed_state, condition, normed_target)
-            #     actions_list = dataset.normalizer.unnormalize(to_np(samples)[0, :, observation_dim:], 'actions')
-            # action = actions_list[0]
-            # actions_list = np.delete(actions_list, 0, 0)
-            
-            # Positional control
-            if len(next_waypoint_list) == 0:
-                normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
-                normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1, goal_dim)
-                samples = dc.ema_model(normed_state, condition, normed_target)
-                next_waypoint_list = dataset.normalizer.unnormalize(to_np(samples)[0, 1:, :observation_dim], 'observations')
-            action = next_waypoint_list[0, :goal_dim] - state[:goal_dim] + next_waypoint_list[0, goal_dim:] - state[goal_dim:]
-            next_waypoint_list = np.delete(next_waypoint_list, 0, 0)
-            
-
-    else:
-        normed_state = to_torch(dataset.normalizer(state, 'observations')).reshape(1, observation_dim)
-        normed_target = to_torch(dataset.normalizer(target, 'goals')).reshape(1,goal_dim)
-        samples = dc.ema_model(normed_state, condition, normed_target)
-        action = dataset.normalizer.unnormalize(to_np(samples)[0, 0, observation_dim:], 'actions')
+    
+    action = policy.act(state, condition, target, at_goal)
         
     rollout.append(state[None, ].copy())
         
