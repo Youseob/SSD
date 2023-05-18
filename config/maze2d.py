@@ -92,11 +92,11 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [True],
+        'multi': [False],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 3, 4], 
-        'wandb': [True],
+        'epi_seed': [1, 1, 2, 3, 4], 
+        'wandb': [False],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -105,7 +105,7 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['position'],
+        'control': ['surrogate'],
 
         ## serialization
         'loadbase': [None],
@@ -125,7 +125,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [29999],
+        'diffusion_epoch': [69999],
 
         'verbose': [False],
         'suffix': ['0'],
