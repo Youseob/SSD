@@ -175,27 +175,17 @@ class DiffuserCritic(object):
                     # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
                     goal = trajectories[:, -1, :self.goal_dim]
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
-                    q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             self.critic.unnorm(goal_rpt, 'goals')).mean(1)
                 else:
                     goal = batch.rtgs[:, -1].clone()
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
-                    q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             goal_rpt).mean(1)
-                # for g = s_(t+1)
-                # q_hind = 1
-                # for g = rand_goal
-                q_rand = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                        self.critic.unnorm(action, 'actions'), 
-                                        self.critic.unnorm(goal_rpt, 'goals')).mean(1)
-                # q_rand = q_rand.clamp_(max=1)
-                # discount = self.critic.gamma ** (reversed(torch.arange(self.horizon).to('cuda:0')))[None]
-                # values = torch.cat([q_hind * discount.repeat(self.batch_size, 1), q_rand * discount], 0)
-                # values = values.unsqueeze(-1)
                     
-                loss_d = self.diffuser.loss(trajectories, q_rand, goal)
+                loss_d = self.diffuser.loss(trajectories, values, goal)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             

@@ -95,6 +95,8 @@ elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+elif args.control == 'surrogate':
+    policy = ConditionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, horizon, dc.critic.gamma)
 
 
 
@@ -105,8 +107,9 @@ elif args.control == 'every':
 state = env.reset()
 
 if 'maze2d' in args.dataset:
-    print('Resetting target')
-    if args.multi: env.set_target()
+    if args.multi: 
+        print('Resetting target')
+        env.set_target()
     ## set conditioning xy position to be the goal
     target = env._target
 elif 'Fetch' in args.dataset:
@@ -116,7 +119,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) * 2
+condition = torch.ones((1, 1)).to(args.device) 
 
 if args.wandb:
     print('Wandb init...')
@@ -127,7 +130,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"2.0_{args.dataset}"
+    wandb.run.name = f"3.0_{args.dataset}"
     # wandb.run.name = f"Positional_{args.dataset}"
 
 total_reward = 0
