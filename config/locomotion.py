@@ -170,14 +170,8 @@ halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert
         'horizon': [4],
         'dim_mults': [(1, 4, 8)],
     },
-    'values': {
-        'horizon': 4,
-        'dim_mults': (1, 4, 8),
-    },
-    'plan': {
-        'horizon': 4,
-        # 'n_guide_steps': 1,
-        'scale': 0.001,
-        't_stopgrad': 4,
+    'evaluate': {
+        'horizon': [4],
+        'dim_mults': [(1, 4, 8)],
     },
 }
