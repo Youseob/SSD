@@ -107,7 +107,7 @@ class SampleEveryControl:
         
     def act(self, state, condition, target, at_goal=None):
         normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
-        normed_target = to_torch(self.ataset.normalizer(target, 'goals')).reshape(1, self.goal_dim)
+        normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
         samples = self.ema_model(normed_state, condition, normed_target)
         action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
         
