@@ -87,7 +87,7 @@ base = {
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
         'target_rtg': [1.2, 1.4],
-        'decreasing_target_rtg': [True],
+        'decreasing_target': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
