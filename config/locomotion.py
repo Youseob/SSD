@@ -87,7 +87,7 @@ base = {
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
         'target_rtg': [1.2, 1.4],
-        'decreasing_target_rtg': [True],
+        'decreasing_target': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
@@ -103,19 +103,20 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
+        'control': ['every'],
 
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/dc'],
+        'prefix': ['eval/final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
         'horizon': [16], #None,
-        'n_diffusion_steps': [50],
+        'n_diffusion_steps': [100],
         # 'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         # 'maxq': [True],
@@ -123,7 +124,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [99999],
+        'diffusion_epoch': [69999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -167,18 +168,11 @@ hopper_medium_expert_v2 = {
 
 halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert_v2 = {
     'diffusion': {
-        'horizon': 4,
-        'dim_mults': (1, 4, 8),
-        'attention': True,
+        'horizon': [4],
+        'dim_mults': [(1, 4, 8)],
     },
-    'values': {
-        'horizon': 4,
-        'dim_mults': (1, 4, 8),
-    },
-    'plan': {
-        'horizon': 4,
-        # 'n_guide_steps': 1,
-        'scale': 0.001,
-        't_stopgrad': 4,
+    'evaluate': {
+        'horizon': [4],
+        'dim_mults': [(1, 4, 8)],
     },
 }

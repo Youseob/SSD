@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -98,14 +98,7 @@ elif args.control == 'every':
 elif args.control == 'surrogate':
     policy = ConditionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, horizon, dc.critic.gamma)
 
-
-
-##############################################################################
-############################## Start iteration ###############################
-##############################################################################
-
-state = env.reset()
-
+## Set target and condition
 if 'maze2d' in args.dataset:
     if args.multi: 
         print('Resetting target')
@@ -121,6 +114,7 @@ else:
     target = dataset.normalizer(target, 'rtgs')
 condition = torch.ones((1, 1)).to(args.device) 
 
+## Init wandb
 if args.wandb:
     print('Wandb init...')
     wandb_dir = '/tmp/sykim/wandb'
@@ -130,8 +124,13 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"3.0_{args.dataset}"
-    # wandb.run.name = f"Positional_{args.dataset}"
+    wandb.run.name = f"1.0_{args.dataset}"
+
+##############################################################################
+############################## Start iteration ###############################
+##############################################################################
+
+state = env.reset()
 
 total_reward = 0
 rollout = []
@@ -149,9 +148,10 @@ for t in range(env.max_episode_steps):
     
     # if mujoco, decrease target rtg
     if 'maze2d' not in args.dataset and 'Fetch' not in args.dataset:
-        target = dataset.normalizer.unnormalize(target, 'rtgs')
-        target -= reward
-        target = dataset.normalizer(target, 'rtgs')
+        if args.decreasing_target:
+            target = dataset.normalizer.unnormalize(target, 'rtgs')
+            target -= reward
+            target = dataset.normalizer(target, 'rtgs')
     
     total_reward += reward
     score = env.get_normalized_score(total_reward)
