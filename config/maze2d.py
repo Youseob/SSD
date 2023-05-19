@@ -96,7 +96,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [1, 1, 2, 3, 4], 
-        'wandb': [False],
+        'wandb': [True],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -105,7 +105,7 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['surrogate'],
+        'control': ['condition'],
 
         ## serialization
         'loadbase': [None],
