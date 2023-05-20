@@ -9,8 +9,8 @@ from datasets import SequenceDataset
 from dc.dc import DiffuserCritic
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'maze2d-umaze-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -55,7 +55,7 @@ dc = DiffuserCritic(
     clip_denoised=args.clip_denoised,
     condition_guidance_w=args.condition_guidance_w,
     beta_schedule=args.beta_schedule,
-    warmup_steps=args.warmup_steps,
+    # warmup_steps=args.warmup_steps,
     maxq=args.maxq,
     alpha=args.alpha, 
     ema_decay=args.ema_decay,
@@ -74,7 +74,7 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='sungyoon',
+               entity='diffusercritic',
                config=args,
                dir=wandb_dir,
                )

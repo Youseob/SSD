@@ -65,10 +65,10 @@ base = {
         'seed': [0],
         'maxq': [False],
         'alpha': [1],
-        'n_steps_per_epoch': [10000],
+        'n_steps_per_epoch': [100000],
         'loss_type': ['l2'],
-        'n_train_steps': [1e5],
-        'warmup_steps': [4e4],
+        'n_train_steps': [1e6],
+        # 'warmup_steps': [4e4],
         'batch_size': [64],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
@@ -96,7 +96,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [1, 1, 2, 3, 4], 
-        'wandb': [True],
+        'wandb': [False],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -105,7 +105,7 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['torque'],
+        'control': ['position'],
         'increasing_condition': [True],
 
         ## serialization

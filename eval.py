@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'maze2d-umaze-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -95,8 +95,8 @@ elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
-elif args.control == 'surrogate':
-    policy = ConditionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, horizon, dc.critic.gamma)
+else: 
+    NotImplementedError(args.control)
 
 ## Set target and condition
 if 'maze2d' in args.dataset:
@@ -112,7 +112,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) 
+condition = torch.ones((1, 1)).to(args.device) * 2
+gamma = dc.critic.gamma
 
 ## Init wandb
 if args.wandb:
@@ -124,7 +125,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"1.0_{args.dataset}"
+    wandb.run.name = f"2.0_{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -139,7 +140,10 @@ for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
-    
+
+    if args.increasing_condition:
+        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        
     action = policy.act(state, condition, target, at_goal)
         
     rollout.append(state[None, ].copy())
@@ -152,7 +156,7 @@ for t in range(env.max_episode_steps):
             target = dataset.normalizer.unnormalize(target, 'rtgs')
             target -= reward
             target = dataset.normalizer(target, 'rtgs')
-    
+        
     total_reward += reward
     score = env.get_normalized_score(total_reward)
     print(

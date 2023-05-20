@@ -96,14 +96,15 @@ class GaussianDiffusion(nn.Module):
         return loss_weights.to(self.device)
     
     @torch.no_grad()
-    def score(self, x, t, state, cond):
-        if self.conditional:
-            # epsilon could be epsilon or x0 itself
-            epsilon_cond = self.model(x, t, state, cond, use_dropout=False)
-            epsilon_uncond = self.model(x, t, state, cond, force_dropout=True)
-            epsilon = epsilon_uncond + self.condition_guidance_w*(epsilon_cond - epsilon_uncond)
-        else:
-            epsilon = self.model(x, t, state, cond)        
+    def score(self, x, t, cond, goal):
+        # if self.conditional:
+        #     # epsilon could be epsilon or x0 itself
+        #     epsilon_cond = self.model(x, t, state, cond, use_dropout=False)
+        #     epsilon_uncond = self.model(x, t, state, cond, force_dropout=True)
+        #     epsilon = epsilon_uncond + self.condition_guidance_w*(epsilon_cond - epsilon_uncond)
+        # else:
+        #     epsilon = self.model(x, t, state, cond)     
+        epsilon = self.model(x, t, cond, goal)   
         return - extract(self.sqrt_one_minus_alphas_cumprod, t, x.shape)**(-1) * epsilon
     
     def predict_start_from_noise(self, x_t, t, noise):
@@ -130,7 +131,7 @@ class GaussianDiffusion(nn.Module):
         posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def p_mean_variance(self, x, t, y):
+    def p_mean_variance(self, x, t, cond, goal):
         '''
             p_theta(x_{t-1} | x_t)
         '''
@@ -139,15 +140,16 @@ class GaussianDiffusion(nn.Module):
             x = torch.tensor(x, requires_grad=True)
             t = torch.tensor(t, dtype=torch.float, requires_grad=True)
         
-        if self.conditional:
-            assert y != None
-            # epsilon could be epsilon or x0 itself
-            epsilon_cond = self.model(x, t, y, use_dropout=False)
-            epsilon_uncond = self.model(x, t, y, force_dropout=True)
-            epsilon = epsilon_uncond + self.condition_guidance_w*(epsilon_cond - epsilon_uncond)
-        else:
-            assert y == None
-            epsilon = self.model(x, t, y=None)
+        epsilon = self.model(x, t, cond, goal)        
+        # if self.conditional:
+        #     assert y != None
+        #     # epsilon could be epsilon or x0 itself
+        #     epsilon_cond = self.model(x, t, y, use_dropout=False)
+        #     epsilon_uncond = self.model(x, t, y, force_dropout=True)
+        #     epsilon = epsilon_uncond + self.condition_guidance_w*(epsilon_cond - epsilon_uncond)
+        # else:
+        #     assert y == None
+        #     epsilon = self.model(x, t, y=None)
                 
         t = t.detach().to(torch.int64)
         x_recon = self.predict_start_from_noise(x, t=t, noise=epsilon)
@@ -162,31 +164,31 @@ class GaussianDiffusion(nn.Module):
         return model_mean, posterior_variance, posterior_log_variance
     
     @torch.no_grad()
-    def p_sample(self, x, t, y):
+    def p_sample(self, x, t, cond, goal):
         b, *_, device = *x.shape, x.device
-        model_mean, _, model_log_variance = self.p_mean_variance(x=x, t=t, y=y)
+        model_mean, _, model_log_variance = self.p_mean_variance(x=x, t=t, cond=cond, goal=goal)
         noise = 0.5 * torch.randn_like(x)
         # no noise when t == 0
         nonzero_mask = (1 - (t==0).float()).reshape(b, *((1,) * (len(x.shape)-1)))
         return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
     
     @torch.no_grad()
-    def p_sample_loop(self, shape, state, y, return_diffusion=False):
+    def p_sample_loop(self, shape, state, cond, goal, return_diffusion=False):
         batch_size = shape[0]
         x = 0.5 * torch.randn(shape, device=self.device)
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
-        x[:, -1, :self.goal_dim] = y[:, -self.goal_dim:].clone()
+        x[:, -1, :self.goal_dim] = goal.clone()
         
         if return_diffusion: diffusion = [x]
         
         progress = utils.Progress(self.n_timesteps)
         for i in reversed(range(0, self.n_timesteps)):
             timesteps = torch.full((batch_size,), i, device=self.device, dtype=torch.long)
-            x = self.p_sample(x, timesteps, y)
+            x = self.p_sample(x, timesteps, cond, goal)
             # apply conditioning
             x[:, 0, :self.observation_dim] = state.clone()
-            x[:, -1, :self.goal_dim] = y[:, -self.goal_dim:].clone()
+            x[:, -1, :self.goal_dim] = goal.clone()
                         
             progress.update({'t': i})
             if return_diffusion: diffusion.append(x)
@@ -201,8 +203,7 @@ class GaussianDiffusion(nn.Module):
     def conditional_sample(self, state, value, goal, *args, **kwargs):
         batch_size = value.shape[0]
         shape =  (batch_size, self.horizon, self.transition_dim)
-        y = torch.cat([value, goal], -1)
-        return self.p_sample_loop(shape, state, y, *args, **kwargs)
+        return self.p_sample_loop(shape, state, value, goal, *args, **kwargs)
     
     #------------------------------------------ training ------------------------------------------#
     
@@ -216,31 +217,30 @@ class GaussianDiffusion(nn.Module):
         )
         return sample
     
-    def p_losses(self, x_start, t, state, y):
+    def p_losses(self, x_start, t, state, cond, goal):
         noise = torch.randn_like(x_start)
-        b, h, *_ = x_start.shape
         x_start = x_start.float()
         
         x_noisy = self.q_sample(x_start, t, noise)
         # apply conditioning
         x_noisy[:, 0, :self.observation_dim] = state.clone()
-        x_noisy[:, -1, :self.goal_dim] = y[:, -self.goal_dim:].clone()
+        x_noisy[:, -1, :self.goal_dim] = goal.clone()
         
         if self.model.calc_energy:
             assert self.predict_epsilon
             x_noisy.requires_grad = True
             t = torch.tensor(t, dtype=torch.float, requires_grad=True)
-            y.requires_grad = True
+            goal.requires_grad = True
             noise.requires_grad = True
         
-        x_recon = self.model(x_noisy, t, y)
+        x_recon = self.model(x_noisy, t, cond, goal)
         if self.clip_denoised:
             x_recon.clamp_(-1., 1.)
         
         if not self.predict_epsilon:
             # apply conditioning
             x_recon[:, 0, :self.observation_dim] = state.clone()
-            x_recon[:, -1, :self.goal_dim] = y[:, -self.goal_dim:].clone()
+            x_recon[:, -1, :self.goal_dim] = goal.clone()
         
         assert noise.shape == x_recon.shape
         
@@ -255,9 +255,8 @@ class GaussianDiffusion(nn.Module):
         batch_size = len(trajectories)
         x = trajectories
         state = trajectories[:, 0, :self.observation_dim]
-        y = torch.cat([cond, goal], -1)
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
-        loss = self.p_losses(x, t, state, y)
+        loss = self.p_losses(x, t, state, cond, goal)
     
         return loss.mean()
 

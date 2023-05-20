@@ -10,7 +10,7 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
-from .temporal import TemporalUnet
+from .temporal import TemporalUnetConditional
 from .model import MLP
 from .diffusion import GaussianDiffusion
 from .qnet import CQLCritic, Critic, HindsightCritic
@@ -38,7 +38,7 @@ class DiffuserCritic(object):
                  condition_guidance_w,
                  beta_schedule,
                  ## training ##
-                 warmup_steps,
+                #  warmup_steps,
                  maxq=False,
                  alpha=1.0,
                  step_start_ema=1000,
@@ -65,7 +65,7 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnet(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+        self.model = TemporalUnetConditional(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
@@ -109,7 +109,7 @@ class DiffuserCritic(object):
         
         self.batch_size = train_batch_size
         self.gradient_accumulate_every = gradient_accumulate_every
-        self.warmup_steps = warmup_steps
+        # self.warmup_steps = warmup_steps
         self.maxq = maxq
         self.alpha = alpha
 
@@ -177,15 +177,15 @@ class DiffuserCritic(object):
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'goals')).mean(1)
+                                            self.critic.unnorm(goal_rpt, 'goals'))
                 else:
                     goal = batch.rtgs[:, -1].clone()
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
-                                            goal_rpt).mean(1)
+                                            goal_rpt)
                     
-                loss_d = self.diffuser.loss(trajectories, values, goal)
+                loss_d = self.diffuser.loss(trajectories, values.detach(), goal)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             
