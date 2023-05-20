@@ -106,7 +106,7 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['position'],
-        'increasing_condition': [True],
+        'increasing_condition': [False],
 
         ## serialization
         'loadbase': [None],
@@ -126,7 +126,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [69999],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],

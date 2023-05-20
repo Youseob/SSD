@@ -258,7 +258,6 @@ class TemporalUnetConditional(nn.Module):
             x : [ batch x horizon x transition ]
             returns : [batch x horizon]
         '''
-        x += self.condition_mlp(cond)
 
         if self.calc_energy:
             x_inp = x
@@ -299,6 +298,7 @@ class TemporalUnetConditional(nn.Module):
             grad = torch.autograd.grad(outputs=energy, inputs=x_inp, create_graph=True)
             return grad[0]
         else:
+            x += self.condition_mlp(cond)
             return x
 
     def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):
