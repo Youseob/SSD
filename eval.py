@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -73,7 +73,7 @@ dc = DiffuserCritic(
     clip_denoised=args.clip_denoised,
     condition_guidance_w=args.condition_guidance_w,
     beta_schedule=args.beta_schedule,
-    warmup_steps=args.warmup_steps,
+    # warmup_steps=args.warmup_steps,
     maxq=args.maxq,
     alpha=args.alpha, 
     ema_decay=args.ema_decay,
@@ -112,7 +112,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) * 2
+condition = torch.zeros((1, horizon, 1)).to(args.device)
+condition[0, -1] = 1
 gamma = dc.critic.gamma
 
 ## Init wandb
@@ -121,11 +122,11 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='sungyoon',
+               entity='diffusercritic',
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"2.0_{args.dataset}"
+    wandb.run.name = f"{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
