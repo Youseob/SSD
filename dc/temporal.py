@@ -175,6 +175,7 @@ class TemporalUnetConditional(nn.Module):
         dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
         print(f'[ models/temporal ] Channel dimensions: {in_out}')
+        self.horizon = horizon
 
         if calc_energy:
             mish = False
@@ -197,14 +198,7 @@ class TemporalUnetConditional(nn.Module):
         self.condition_dropout = condition_dropout
         self.calc_energy = calc_energy
 
-        self.goal_mlp = nn.Sequential(
-                        nn.Linear(cond_dim, dim),
-                        act_fn,
-                        nn.Linear(dim, dim * 4),
-                        act_fn,
-                        nn.Linear(dim * 4, dim)
-        )
-        embed_dim = 2 * dim
+        embed_dim = dim
         
         if self.conditional:
             self.condition_mlp = nn.Sequential(
@@ -214,6 +208,13 @@ class TemporalUnetConditional(nn.Module):
                         act_fn,
                         nn.Linear(dim * 4, transition_dim),
                     )
+            self.goal_mlp = nn.Sequential(
+                            nn.Linear(cond_dim, dim),
+                            act_fn,
+                            nn.Linear(dim, dim * 4),
+                            act_fn,
+                            nn.Linear(dim * 4, transition_dim)
+        )
 
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
@@ -265,9 +266,9 @@ class TemporalUnetConditional(nn.Module):
 
         t = self.time_mlp(time)
 
-        if self.conditional:
-            goal_embed = self.goal_mlp(goal)
-            t = torch.cat([t, goal_embed], dim=-1)
+        # if self.conditional:
+        #     goal_embed = self.goal_mlp(goal)
+        #     t = torch.cat([t, goal_embed], dim=-1)
 
         h = []
 
@@ -299,6 +300,7 @@ class TemporalUnetConditional(nn.Module):
             return grad[0]
         else:
             x += self.condition_mlp(cond)
+            x += self.goal_mlp(einops.repeat(goal, 'b d -> b h d', h=self.horizon))
             return x
 
     def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):

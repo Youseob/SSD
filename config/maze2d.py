@@ -46,7 +46,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'use_padding': [False],
         'max_path_length': [600], # umaze:250, medium: 500, large: 600
-        'max_n_episodes': [20000],
+        'max_n_episodes': [40000],
         
         ## diffuser
         'conditional': [True],
@@ -65,7 +65,7 @@ base = {
         'seed': [0],
         'maxq': [False],
         'alpha': [1],
-        'n_steps_per_epoch': [100000],
+        'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
         'n_train_steps': [1e6],
         # 'warmup_steps': [4e4],
@@ -76,7 +76,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [10],
+        'n_saves': [100],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -96,7 +96,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [1, 1, 2, 3, 4], 
-        'wandb': [False],
+        'wandb': [True],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -169,21 +169,21 @@ base = {
 maze2d_umaze_v1 = {
     'diffusion': {
         'horizon': [128],
-        'n_diffusion_steps': [100],
+        'n_diffusion_steps': [64],
     },
     'evaluate': {
         'horizon': [128],
-        'n_diffusion_steps': [100],
+        'n_diffusion_steps': [64],
     },
 }
 maze2d_medium_v1 = {
     'diffusion': {
         'horizon': [256],
-        'n_diffusion_steps': [256],
+        'n_diffusion_steps': [64],
     },
     'evaluate': {
         'horizon': [256],
-        'n_diffusion_steps': [256],
+        'n_diffusion_steps': [64],
     },
 }
 maze2d_large_v1 = {

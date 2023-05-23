@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'maze2d-large-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -112,8 +112,8 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.zeros((1, horizon, 1)).to(args.device)
-condition[0, -1] = 1
+condition = torch.ones((1, horizon, 1)).to(args.device)
+# condition[0, -1] = 1
 gamma = dc.critic.gamma
 
 ## Init wandb
