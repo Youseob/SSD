@@ -92,10 +92,10 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [False],
+        'multi': [True],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [1, 1, 2, 3, 4], 
+        'epi_seed': [9, 1, 2, 3, 4], 
         'wandb': [True],
 
         ## sample_kwargs
@@ -126,7 +126,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [99999],
+        'diffusion_epoch': [499999],
 
         'verbose': [False],
         'suffix': ['0'],

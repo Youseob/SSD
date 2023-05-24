@@ -1,10 +1,10 @@
 #!/bin/bash
 cd ~/DC
-for diffusion_epoch in 599999 699999 799999 899999
+for diffusion_epoch in 499999
 do
 for epi_seed in {0..9}
 do
-    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset maze2d-large-v1 \
+    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset maze2d-umaze-v1 \
                                                            --control position \
                                                            --increasing_condition False \
                                                            --multi True \
