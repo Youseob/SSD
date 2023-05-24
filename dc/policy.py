@@ -75,16 +75,18 @@ class ConditionControl:
         return action
 
 class GoalPositionControl:
-    def __init__(self, ema_model, normalizer, observation_dim, goal_dim):
+    def __init__(self, ema_model, normalizer, observation_dim, goal_dim, p_gain=10., d_gain=-1.):
         self.next_waypoint_list = []
         self.ema_model = ema_model
         self.normalizer = normalizer
         self.observation_dim = observation_dim
         self.goal_dim = goal_dim
+        self.p_gain = p_gain
+        self.d_gain = d_gain
     
     def act(self, state, condition, target, at_goal):
         if at_goal:
-            action = target - state[:self.goal_dim] - state[self.goal_dim:]
+            action = self.p_gain * (target - state[:self.goal_dim]) + self.d_gain * state[self.goal_dim:]
             self.next_waypoint_list = []
         else:
             if len(self.next_waypoint_list) == 0:
@@ -92,8 +94,10 @@ class GoalPositionControl:
                 normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
                 samples = self.ema_model(normed_state, condition, normed_target)
                 self.next_waypoint_list = self.normalizer.unnormalize(to_np(samples)[0, 1:, :self.observation_dim], 'observations')
-            action = self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim] \
-                    + self.next_waypoint_list[0, self.goal_dim:] - state[self.goal_dim:]
+            # action = self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim] \
+            #         + self.next_waypoint_list[0, self.goal_dim:] - state[self.goal_dim:]
+            action = self.p_gain * (self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim]) \
+                    + self.d_gain * state[self.goal_dim:]
             self.next_waypoint_list = np.delete(self.next_waypoint_list, 0, 0)
         
         return action
