@@ -106,6 +106,9 @@ if 'maze2d' in args.dataset:
     ## set conditioning xy position to be the goal
     target = env._target
 elif 'Fetch' in args.dataset:
+    if args.multi: 
+        print('Resetting target')
+        env.set_target()
     ## set conditioning xyz position to be the goal
     target = env.goal
 else:
@@ -126,7 +129,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"{args.dataset}"
+    wandb.run.name = f"p_gain_{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -139,8 +142,10 @@ rollout = []
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
-    if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
+    if 'maze2d' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
+    elif 'Fetch' in args.dataset:
+        at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.05
 
     if args.increasing_condition:
         condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
