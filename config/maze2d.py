@@ -10,7 +10,7 @@ diffusion_args_to_watch = [
     ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('condition_dropout', 'dr'),
+    ('seed', 's'),
     # ('maxq', 'maxq'),
     # ('conditional', 'cond'),
 ]
@@ -76,7 +76,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [100],
+        'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -112,7 +112,7 @@ base = {
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/final'],
+        'prefix': ['eval/wo-goalcond'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,11 +121,11 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'condition_dropout': [0.25],
+        'seed': [0],
         # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_s{seed}'],
         'diffusion_epoch': [499999],
 
         'verbose': [False],
@@ -168,31 +168,31 @@ base = {
 
 maze2d_umaze_v1 = {
     'diffusion': {
-        'horizon': [128],
+        'horizon': [32],
         'n_diffusion_steps': [64],
     },
     'evaluate': {
-        'horizon': [128],
+        'horizon': [32],
         'n_diffusion_steps': [64],
     },
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [256],
+        'horizon': [64],
         'n_diffusion_steps': [64],
     },
     'evaluate': {
-        'horizon': [256],
+        'horizon': [64],
         'n_diffusion_steps': [64],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [384],
+        'horizon': [64],
         'n_diffusion_steps': [256],
     },
     'evaluate': {
-        'horizon': [384],
+        'horizon': [64],
         'n_diffusion_steps': [256],
     },
 }
