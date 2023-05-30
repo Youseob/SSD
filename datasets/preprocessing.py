@@ -17,9 +17,9 @@ def atleast_2d(x):
 def discount_cumsum(x, gamma=1.):
     discount_cumsum = np.zeros_like(x)
     if len(x) == 0: return discount_cumsum
-    discount_cumsum[-1] = x[-1]
-    for t in reversed(range(x.shape[0]-1)):
-        discount_cumsum[t] = x[t] + gamma * discount_cumsum[t+1]
+    discount_cumsum[...,-1] = x[...,-1]
+    for t in reversed(range(x.shape[-1]-1)):
+        discount_cumsum[...,t] = x[...,t] + gamma * discount_cumsum[...,t+1]
     return discount_cumsum
 
 def compose(*fns):
@@ -193,26 +193,35 @@ def fetch_dataset(env):
         at_goal = distances < threshold
         shape = dataset['u'].shape[:-1]
         timeouts = np.zeros(shape)
+        
+        next_xyz = dataset['ag'][:,1:]
+        next_distances = np.linalg.norm(next_xyz-dataset['g'], axis=-1)
+        rewards = (next_distances < threshold).astype(np.float32)
 
         ## timeout at time t iff
         ##      at goal at time t and
         ##      not at goal at time t + 1
         timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
-        if env.reward_type == 'sparse':
-            rewards = -(~at_goal).astype(np.float32)
-        elif env.reward_type == 'very_sparse':
-            rewards = at_goal.astype(np.float32)
-        else:
-            rewards = -distances
-
-        timeout_steps = np.where(timeouts.reshape((np.prod(shape), -1)))[0]
-        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
-
+        # if env.reward_type == 'sparse':
+        #     rewards = -(~at_goal).astype(np.float32)
+        # elif env.reward_type == 'very_sparse':
+        #     rewards = at_goal.astype(np.float32)
+        # else:
+        #     rewards = -distances
+        
+        timeouts[:, [0,-1]] = 1
+        path_lengths = []
+        for i in range(shape[0]):
+            path_lengths = np.concatenate([path_lengths, np.where(timeouts[i])[0][1:] - np.where(timeouts[i])[0][:-1]], axis=0)
+        timeouts[:, 0] = 0
+        
         print(
             f'[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | '
             f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
         )
 
+        rtg = discount_cumsum(rewards)
+        dataset['rtgs'] = rtg.reshape((np.prod(shape), -1))
         dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
         dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
         dataset['actions'] = dataset['u'].reshape((np.prod(shape), -1))
