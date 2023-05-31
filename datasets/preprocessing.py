@@ -201,7 +201,7 @@ def fetch_dataset(env):
         ## timeout at time t iff
         ##      at goal at time t and
         ##      not at goal at time t + 1
-        timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
+        # timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
         # if env.reward_type == 'sparse':
         #     rewards = -(~at_goal).astype(np.float32)
         # elif env.reward_type == 'very_sparse':
@@ -209,15 +209,14 @@ def fetch_dataset(env):
         # else:
         #     rewards = -distances
         
-        timeouts[:, [0,-1]] = 1
-        path_lengths = []
-        for i in range(shape[0]):
-            path_lengths = np.concatenate([path_lengths, np.where(timeouts[i])[0][1:] - np.where(timeouts[i])[0][:-1]], axis=0)
-        timeouts[:, 0] = 0
+        timeouts[:, -1] = 1
+        # path_lengths = []
+        # for i in range(shape[0]):
+        #     path_lengths = np.concatenate([path_lengths, np.where(timeouts[i])[0][1:] - np.where(timeouts[i])[0][:-1]], axis=0)
         
         print(
-            f'[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | '
-            f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
+            f'[ utils/preprocessing ] Segmented {env.name} | {shape[0]} paths | '
+            f'min length: {shape[-1]} | max length: {shape[-1]}'
         )
 
         rtg = discount_cumsum(rewards)
