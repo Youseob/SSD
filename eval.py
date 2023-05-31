@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchReach-v1'
-    config: str = 'config.fetch'
+    dataset: str = 'hopper-medium-expert-v2'
+    config: str = 'config.locomotion'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -93,12 +93,13 @@ dc = DiffuserCritic(
 
 dc.load(args.diffusion_epoch)
 
+has_object = hasattr(dataset.env, 'has_object')
 if args.control == 'torque':
-    policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
+    policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'position':
-    policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
+    policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
-    policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
+    policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 else: 
     NotImplementedError(args.control)
 

@@ -379,7 +379,7 @@ class HindsightCritic(nn.Module):
         self.obsact_dim = state_dim + action_dim
         self.goal_dim = goal_dim
         
-        self.has_object = dataset.env.has_object or False
+        self.has_object = hasattr(dataset.env, 'has_object')
         self.env_name = dataset.env.name
         self.normalizer = dataset.normalizer
         if 'goals' in self.normalizer.normalizers:

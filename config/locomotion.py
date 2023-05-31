@@ -86,14 +86,14 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [1.2, 1.4],
+        'target_rtg': [1.2],
         'decreasing_target': [False],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 3, 4], 
+        'epi_seed': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
         'wandb': [True],
 
         ## sample_kwargs
@@ -110,7 +110,7 @@ base = {
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/final'],
+        'prefix': ['eval/ffinal'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -125,7 +125,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [99999],
+        'diffusion_epoch': [499999],
 
         'verbose': [False],
         'suffix': ['0'],

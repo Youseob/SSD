@@ -87,7 +87,7 @@ class DiffuserCritic(object):
         self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
-        self.has_object = dataset.env.has_object or False
+        self.has_object = hasattr(dataset.env, 'has_object')
         self.env_name = dataset.env.name
         datalen = len(dataset)
         trainlen = round(datalen*0.8)
