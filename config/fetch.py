@@ -31,8 +31,8 @@ base = {
     'diffusion': {
         ## model
         'horizon': [16],
-        'n_diffusion_steps': [20],
-        'action_weight': [1],
+        'n_diffusion_steps': [100],
+        'action_weight': [10],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e5],
+        'n_train_steps': [5e4],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -86,8 +86,8 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
-        'decreasing_target_rtg': [True],
+        # 'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
+        # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
@@ -122,7 +122,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [499999],
+        'diffusion_epoch': [9999],
 
         'verbose': [False],
         'suffix': ['0'],

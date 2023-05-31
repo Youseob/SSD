@@ -85,10 +85,10 @@ class GaussianDiffusion(nn.Module):
         for ind, w in weights_dict.items():
             dim_weights[self.action_dim + ind] *= w
         
-        ## decay loss with trajectory timestep: discount**t
-        # discounts = discount ** torch.arange(self.horizon, dtype=torch.float)
-        # discounts = discounts / discounts.mean()
-        # loss_weights = torch.einsum('h,t->ht', discounts, dim_weights)
+        # decay loss with trajectory timestep: discount**t
+        discounts = discount ** torch.arange(self.horizon, dtype=torch.float)
+        discounts = discounts / discounts.mean()
+        loss_weights = torch.einsum('h,t->ht', discounts, dim_weights)
         loss_weights = dim_weights * discount
         
         ## manually set a0 weight
@@ -173,13 +173,14 @@ class GaussianDiffusion(nn.Module):
         return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
     
     @torch.no_grad()
-    def p_sample_loop(self, shape, state, cond, goal, return_diffusion=False, has_object=False):
+    def p_sample_loop(self, shape, state, cond, goal, has_object, return_diffusion=False):
         batch_size = shape[0]
         x = 0.5 * torch.randn(shape, device=self.device)
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
         if has_object:
             x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+            x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
         else:
             x[:, -1, :self.goal_dim] = goal.clone()
         
@@ -193,6 +194,7 @@ class GaussianDiffusion(nn.Module):
             x[:, 0, :self.observation_dim] = state.clone()
             if has_object:
                 x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+                x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
             else:
                 x[:, -1, :self.goal_dim] = goal.clone()
                         
@@ -232,6 +234,7 @@ class GaussianDiffusion(nn.Module):
         x_noisy[:, 0, :self.observation_dim] = state.clone()
         if has_object:
             x_noisy[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+            x_noisy[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_noisy[:, -1, :self.goal_dim].clone()
         else:
             x_noisy[:, -1, :self.goal_dim] = goal.clone()
         
@@ -251,6 +254,7 @@ class GaussianDiffusion(nn.Module):
             x_recon[:, 0, :self.observation_dim] = state.clone()
             if has_object:
                 x_recon[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+                x_recon[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_recon[:, -1, :self.goal_dim].clone()
             else:
                 x_recon[:, -1, :self.goal_dim] = goal.clone()
         

@@ -37,6 +37,7 @@ class DiffuserCritic(object):
                  clip_denoised,
                  condition_guidance_w,
                  beta_schedule,
+                 action_weight,
                  ## training ##
                 #  warmup_steps,
                  maxq=False,
@@ -68,7 +69,7 @@ class DiffuserCritic(object):
         self.model = TemporalUnetConditional(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
-                                        n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
+                                        n_timesteps=n_timesteps, clip_denoised=clip_denoised, action_weight=action_weight,\
                                         conditional=conditional, condition_guidance_w=condition_guidance_w, \
                                         beta_schedule=beta_schedule, device=device).to(device)
         self.diffuser_optimizer = torch.optim.Adam(self.diffuser.parameters(), lr=lr)
