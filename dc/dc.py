@@ -87,6 +87,7 @@ class DiffuserCritic(object):
         self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
+        self.has_object = dataset.env.has_object or False
         self.env_name = dataset.env.name
         datalen = len(dataset)
         trainlen = round(datalen*0.8)
@@ -136,7 +137,7 @@ class DiffuserCritic(object):
             batch = batch_to_device(batch)
             if 'Fetch' in self.env_name or 'maze' in self.env_name:
                 # any states drawn from D
-                goal_rand = batch.trajectories[:, 0, :self.goal_dim].clone()
+                goal_rand = batch.goals.clone()
             else:
                 goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
@@ -171,9 +172,18 @@ class DiffuserCritic(object):
                 
                 # hindsight experience goal/reward
                 trajectories = batch.trajectories
-                if 'Fetch' in self.env_name or 'maze' in self.env_name:
+                if 'maze' in self.env_name:
                     # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
                     goal = trajectories[:, -1, :self.goal_dim]
+                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                                            self.critic.unnorm(action, 'actions'), 
+                                            self.critic.unnorm(goal_rpt, 'goals'))
+                elif 'Fetch' in self.env_name:
+                    if self.has_object:
+                        goal = trajectories[:, -1, self.goal_dim:2*self.goal_dim]
+                    else:
+                        goal = trajectories[:, -1, :self.goal_dim]
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
@@ -185,7 +195,7 @@ class DiffuserCritic(object):
                                             self.critic.unnorm(action, 'actions'), 
                                             goal_rpt)
                     
-                loss_d = self.diffuser.loss(trajectories, values.detach(), goal)
+                loss_d = self.diffuser.loss(trajectories, values.detach(), goal, has_object=self.has_object)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             

@@ -83,14 +83,14 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.path_lengths = fields.path_lengths
             
         self.normalize()
-        if 'Fetch' in env.name or 'maze' in env.name:
-            self.normalize(['goals'])
+        # if 'Fetch' in env.name or 'maze' in env.name:
+        #     self.normalize(['goals'])
 
         print(fields)
         # shapes = {key: val.shape for key, val in self.fields.items()}
         # print(f'[ datasets/mujoco ] Dataset fields: {shapes}')
 
-    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs']):
+    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs', 'goals']):
         '''
             normalize fields that will be predicted by the diffusion model
         '''

@@ -94,31 +94,13 @@ dc = DiffuserCritic(
 dc.load(args.diffusion_epoch)
 
 if args.control == 'torque':
-    policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+    policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
 elif args.control == 'position':
-    policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+    policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
 elif args.control == 'every':
-    policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim)
+    policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, dataset.env.has_object)
 else: 
     NotImplementedError(args.control)
-
-## Set target and condition
-if 'maze2d' in args.dataset:
-    if args.multi: 
-        print('Resetting target')
-        env.set_target()
-    ## set conditioning xy position to be the goal
-    target = env._target
-elif 'Fetch' in args.dataset:
-    ## set conditioning xyz position to be the goal
-    target = env.goal
-else:
-    ## set conditioning rtg to be the goal
-    target = reverse_normalized_score(args.dataset, args.target_rtg)
-    target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device) * 0.6
-# condition[0, -1] = 1
-gamma = dc.critic.gamma
 
 ## Init wandb
 if args.wandb:
@@ -137,6 +119,24 @@ if args.wandb:
 ##############################################################################
 
 state = env.reset()
+
+## Set target and condition
+if 'maze2d' in args.dataset:
+    if args.multi: 
+        print('Resetting target')
+        env.set_target()
+    ## set conditioning xy position to be the goal
+    target = env._target
+elif 'Fetch' in args.dataset:
+    ## set conditioning xyz position to be the goal
+    target = env.goal
+else:
+    ## set conditioning rtg to be the goal
+    target = reverse_normalized_score(args.dataset, args.target_rtg)
+    # target = dataset.normalizer(target, 'rtgs')
+condition = torch.ones((1, horizon, 1)).to(args.device)
+# condition[0, -1] = 1
+gamma = dc.critic.gamma
 
 total_reward = 0
 rollout = []

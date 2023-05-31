@@ -45,7 +45,7 @@ base = {
         'preprocess_fns': [['fetch_dataset']],
         'use_padding': [False],
         'max_path_length': [50],
-        'max_n_episodes': [10000],
+        'max_n_episodes': [100000],
         
         ## diffuser
         'conditional': [True],

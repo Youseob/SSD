@@ -379,6 +379,7 @@ class HindsightCritic(nn.Module):
         self.obsact_dim = state_dim + action_dim
         self.goal_dim = goal_dim
         
+        self.has_object = dataset.env.has_object or False
         self.env_name = dataset.env.name
         self.normalizer = dataset.normalizer
         if 'goals' in self.normalizer.normalizers:
@@ -417,10 +418,16 @@ class HindsightCritic(nn.Module):
         observation_cat = observation.repeat(2,1)
         action_cat = action.repeat(2,1)
         # hindsight goals
-        if 'Fetch' in self.env_name or 'maze' in self.env_name:
+        if 'maze' in self.env_name:
             # unnormalized value
             goal_rand = self.unnorm(goal_rand, 'goals')
             goals = torch.cat([next_observation[:, :self.goal_dim], goal_rand], 0)
+        elif 'Fetch' in self.env_name:
+            goal_rand = self.unnorm(goal_rand, 'goals')
+            if self.has_object:
+                goals = torch.cat([next_observation[:, self.goal_dim:2*self.goal_dim], goal_rand], 0)
+            else:
+                goals = torch.cat([next_observation[:, :self.goal_dim], goal_rand], 0)     
         else:
             # normalized value
             goals = torch.cat([batch.goals, goal_rand], 0)        
