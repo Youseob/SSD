@@ -16,7 +16,7 @@ ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
     name = str.split(env.name, '-')[0]
-    with open(f'/home/sykim/offline_gcrl_data/offline_data/expert/{name}/buffer.pkl', 'rb') as f:
+    with open(f'/ext2/sykim/offline_gcrl_data/offline_data/expert/{name}/buffer.pkl', 'rb') as f:
         dataset = pickle.load(f)
     dataset = preprocess_fn(dataset)
 
@@ -83,14 +83,14 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.path_lengths = fields.path_lengths
             
         self.normalize()
-        if 'Fetch' in env.name or 'maze' in env.name:
-            self.normalize(['goals'])
+        # if 'Fetch' in env.name or 'maze' in env.name:
+        #     self.normalize(['goals'])
 
         print(fields)
         # shapes = {key: val.shape for key, val in self.fields.items()}
         # print(f'[ datasets/mujoco ] Dataset fields: {shapes}')
 
-    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs']):
+    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs', 'goals']):
         '''
             normalize fields that will be predicted by the diffusion model
         '''

@@ -10,9 +10,9 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
-from .temporal import TemporalUnetConditional
+from .temporal import TemporalUnet4DD
 from .model import MLP
-from .diffusion import GaussianDiffusion
+from .diffusion import GaussianDiffusion4DD
 from .qnet import CQLCritic, Critic, HindsightCritic
 
 def cycle(dl):
@@ -21,7 +21,7 @@ def cycle(dl):
             yield data
     
     
-class DiffuserCritic(object):
+class DecisionDiffuser(object):
     def __init__(self, 
                  dataset,
                  renderer,
@@ -65,9 +65,9 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnetConditional(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+        self.model = TemporalUnet4DD(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
+        self.diffuser = GaussianDiffusion4DD(self.model, state_dim, action_dim, goal_dim, self.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, \
                                         conditional=conditional, condition_guidance_w=condition_guidance_w, \
                                         beta_schedule=beta_schedule, device=device).to(device)
@@ -87,7 +87,6 @@ class DiffuserCritic(object):
         self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
-        self.has_object = hasattr(dataset.env, 'has_object')
         self.env_name = dataset.env.name
         datalen = len(dataset)
         trainlen = round(datalen*0.8)
@@ -137,7 +136,7 @@ class DiffuserCritic(object):
             batch = batch_to_device(batch)
             if 'Fetch' in self.env_name or 'maze' in self.env_name:
                 # any states drawn from D
-                goal_rand = batch.goals.clone()
+                goal_rand = batch.trajectories[:, 0, :self.goal_dim].clone()
             else:
                 goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
@@ -172,18 +171,9 @@ class DiffuserCritic(object):
                 
                 # hindsight experience goal/reward
                 trajectories = batch.trajectories
-                if 'maze' in self.env_name:
+                if 'Fetch' in self.env_name or 'maze' in self.env_name:
                     # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
                     goal = trajectories[:, -1, :self.goal_dim]
-                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
-                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                            self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'goals'))
-                elif 'Fetch' in self.env_name:
-                    if self.has_object:
-                        goal = trajectories[:, -1, self.goal_dim:2*self.goal_dim]
-                    else:
-                        goal = trajectories[:, -1, :self.goal_dim]
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
@@ -194,8 +184,9 @@ class DiffuserCritic(object):
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             goal_rpt)
-                    
-                loss_d = self.diffuser.loss(trajectories, values.detach(), goal, has_object=self.has_object)
+                
+                returns = torch.cat([goal, values.mean(1).detach()], dim=-1)
+                loss_d = self.diffuser.loss(trajectories, None, returns)
                 loss_d.backward()
             self.diffuser_optimizer.step()
             

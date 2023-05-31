@@ -75,12 +75,12 @@ def vp_beta_schedule(timesteps, dtype=torch.float32):
     betas = 1 - alpha
     return torch.tensor(betas, dtype=dtype)
 
-def apply_conditioning(x, conditions, idx):
-    if conditions is None:
-        return x
-    for t, val in conditions.items():
-        x[:, t, idx] = val.clone()
-    return x
+# def apply_conditioning(x, conditions, idx):
+#     if conditions is None:
+#         return x
+#     for t, val in conditions.items():
+#         x[:, t, idx] = val.clone()
+#     return x
 
 def replace_condition(x, conditions, idx):
     if conditions is None:
