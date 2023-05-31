@@ -199,7 +199,7 @@ class MuJoCoRenderer:
         for path in paths:
             ## [ H x obs_dim ]
             path = atmost_2d(path)
-            img = self.renders(to_np(path), dim=dim, partial=True, qvel=True, render_kwargs=render_kwargs, **kwargs)
+            img = self.renders(to_np(path), dim=dim, partial=False, qvel=True, render_kwargs=render_kwargs, **kwargs)
             images.append(img)
         images = np.concatenate(images, axis=0)
 
@@ -272,6 +272,58 @@ class MuJoCoRenderer:
     def __call__(self, *args, **kwargs):
         return self.renders(*args, **kwargs)
 
+#-----------------------------------------------------------------------------#
+#----------------------------------- Fetch -----------------------------------#
+#-----------------------------------------------------------------------------#
+class FetchRenderer(MuJoCoRenderer):
+    
+    def __init__(self, env):
+        if type(env) is str:
+            env = env_map(env)
+            self.env = gym.make(env)
+        else:
+            self.env = env
+        self.observation_dim = np.prod(self.env.observation_space['observation'].shape) - 1
+        self.action_dim = np.prod(self.env.action_space.shape)
+        try:
+            self.viewer = mjc.MjRenderContextOffscreen(self.env.sim, device_id=-1)
+        except:
+            print('[ utils/rendering ] Warning: could not initialize offscreen renderer')
+            self.viewer = None
+    
+    def render(self, observation, width=500, height=500):
+        # import glfw
+        # glfw.set_window_size(self.viewer, width, height)
+        self.env.sim.set_state(observation)
+        self.env.sim.forward()
+        self.viewer.render(width, height)
+        data = self.viewer.read_pixels(width, height, depth=False)
+        return data[::-1, :, :]
+
+    def render_rollout(self, savepath, states, **video_kwargs):
+        assert type(states[0]) is mjc.MjSimState
+        images = self._renders(states)
+        save_video(savepath, images, **video_kwargs)
+
+    def composite(self, savepath, states, ncol=1, **kwargs):
+        '''
+            savepath : str
+            observations : [ n_paths x horizon x 2 ]
+        '''
+        # assert len(paths) % ncol == 0, 'Number of paths must be divisible by number of columns'
+
+        images = self._renders(states)
+        # for path, kw in zipkw(paths, **kwargs):
+        #     img = self.renders(*path, **kw)
+        #     images.append(img)
+        # images = np.stack(images, axis=0)
+
+        nrow = len(images) // ncol
+        images = einops.rearrange(images,
+            '(nrow ncol) H W C -> (nrow H) (ncol W) C', nrow=nrow, ncol=ncol)
+        imageio.imsave(savepath, images)
+        print(f'Saved 1 samples to: {savepath}')
+        
 #-----------------------------------------------------------------------------#
 #----------------------------------- maze2d ----------------------------------#
 #-----------------------------------------------------------------------------#
@@ -356,10 +408,6 @@ class Maze2dRenderer(MazeRenderer):
             conditions /= scale
         return super().renders(observations, conditions, **kwargs)
 
-
-#-----------------------------------------------------------------------------#
-#----------------------------------- Fetch -----------------------------------#
-#-----------------------------------------------------------------------------#
 
 #-----------------------------------------------------------------------------#
 #---------------------------------- rollouts ---------------------------------#
