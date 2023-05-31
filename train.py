@@ -27,7 +27,7 @@ if 'maze2d' in args.dataset:
     renderer = utils.Maze2dRenderer(env=args.dataset)
 elif 'Fetch' in args.dataset:
     goal_dim = 3
-    renderer = utils.MuJoCoRenderer(env=args.dataset)
+    renderer = utils.FetchRenderer(env=args.dataset)
 else:
     goal_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
@@ -56,6 +56,7 @@ dc = DiffuserCritic(
     clip_denoised=args.clip_denoised,
     condition_guidance_w=args.condition_guidance_w,
     beta_schedule=args.beta_schedule,
+    action_weight=args.action_weight,
     # warmup_steps=args.warmup_steps,
     maxq=args.maxq,
     alpha=args.alpha, 
@@ -82,6 +83,7 @@ dc = DiffuserCritic(
 #     clip_denoised=args.clip_denoised,
 #     condition_guidance_w=args.condition_guidance_w,
 #     beta_schedule=args.beta_schedule,
+#     action_weight=args.action_weight,
 #     # warmup_steps=args.warmup_steps,
 #     maxq=args.maxq,
 #     alpha=args.alpha, 

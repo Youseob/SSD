@@ -61,7 +61,7 @@ base = {
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0],
+        'seed': [1,2,3,4],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [50],
+        'n_saves': [5],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -87,7 +87,7 @@ base = {
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
         'target_rtg': [1.2],
-        'decreasing_target': [False],
+        'decreasing_target': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
@@ -167,13 +167,13 @@ hopper_medium_expert_v2 = {
 }
 
 
-halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert_v2 = {
-    'diffusion': {
-        'horizon': [4],
-        'dim_mults': [(1, 4, 8)],
-    },
-    'evaluate': {
-        'horizon': [4],
-        'dim_mults': [(1, 4, 8)],
-    },
-}
+# halfcheetah_medium_replay_v2 = halfcheetah_medium_v2 = halfcheetah_medium_expert_v2 = {
+#     'diffusion': {
+#         'horizon': [4],
+#         'dim_mults': [(1, 4, 8)],
+#     },
+#     'evaluate': {
+#         'horizon': [4],
+#         'dim_mults': [(1, 4, 8)],
+#     },
+# }
