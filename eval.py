@@ -16,8 +16,8 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-large-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'FetchReach-v1'
+    config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -35,7 +35,10 @@ args = Parser().parse_args(iterparser)
 env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
 action_dim = env.action_space.shape[0]
-observation_dim = env.observation_space.shape[0]
+if 'Fetch' in args.dataset:
+    observation_dim = env.observation_space['observation'].shape[0]
+else:
+    observation_dim = env.observation_space.shape[0]
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -87,6 +90,7 @@ dc = DiffuserCritic(
     label_freq=int(args.n_train_steps // args.n_saves),
     wandb=args.wandb,
 )
+
 dc.load(args.diffusion_epoch)
 
 if args.control == 'torque':
@@ -112,7 +116,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device)
+condition = torch.ones((1, horizon, 1)).to(args.device) * 0.6
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -139,31 +143,42 @@ rollout = []
 at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
-    if 'maze2d' in args.dataset or 'Fetch' in args.dataset:
+    if 'maze2d' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
+    elif 'Fetch' in args.dataset:
+        at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
+        state = state['observation']
 
     if args.increasing_condition:
         condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
-        
+
     action = policy.act(state, condition, target, at_goal)
-        
+
     rollout.append(state[None, ].copy())
         
     next_state, reward, done, _ = env.step(action)
     
     # if mujoco, decrease target rtg
-    if 'maze2d' not in args.dataset and 'Fetch' not in args.dataset:
+    if 'Fetch' in args.dataset:
+        reward += 1
+        total_reward += reward
+        score = total_reward
+    elif 'maze2d' in args.dataset:
+        total_reward += reward
+        score = env.get_normalized_score(total_reward)
+    else:
         if args.decreasing_target:
             target = dataset.normalizer.unnormalize(target, 'rtgs')
             target -= reward
             target = dataset.normalizer(target, 'rtgs')
+        total_reward += reward
+        score = env.get_normalized_score(total_reward)
         
-    total_reward += reward
-    score = env.get_normalized_score(total_reward)
     print(
         f't: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | '
         f'{action}'
     )
+    
     if args.wandb:
         wandb.log({
             "reward": reward,
@@ -174,15 +189,21 @@ for t in range(env.max_episode_steps):
     if 'maze2d' in args.dataset:
         xy = next_state[:2]
         goal = env.unwrapped._target
-        print(
-            f'maze | pos: {xy} | goal: {goal}'
-        )
+        print(f'maze | pos: {xy} | goal: {goal}')
+    elif 'Fetch' in args.dataset:
+        xyz = next_state['achieved_goal'][:3]
+        goal = next_state['desired_goal']
+        print(f'Fetch | pos: {xyz} | goal: {goal}')
     
     if done:
         break
     state = next_state
-
-dc.render_samples(np.stack(rollout, axis=1), args.epi_seed)
+    
+if 'Fetch' in args.dataset:
+    success = (reward == 1)
+    print('success:', success)
+    
+# dc.render_samples(np.stack(rollout, axis=1), args.epi_seed)
 
 if args.wandb:
     wandb.finish()

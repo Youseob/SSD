@@ -7,10 +7,11 @@ import wandb
 import utils
 from datasets import SequenceDataset
 from dc.dc import DiffuserCritic
+from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'halfcheetah-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'FetchPickAndPlace-v1'
+    config: str = 'config.fetch'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -68,7 +69,32 @@ dc = DiffuserCritic(
     label_freq=int(args.n_train_steps // args.n_saves),
     wandb=args.wandb,
 )
-
+# dc = DecisionDiffuser(
+#     dataset=dataset,
+#     renderer=renderer,
+#     goal_dim=goal_dim,
+#     device=args.device,
+#     dim_mults=args.dim_mults,
+#     conditional=args.conditional,
+#     condition_dropout=args.condition_dropout,
+#     calc_energy=args.calc_energy,
+#     n_timesteps=args.n_diffusion_steps,
+#     clip_denoised=args.clip_denoised,
+#     condition_guidance_w=args.condition_guidance_w,
+#     beta_schedule=args.beta_schedule,
+#     # warmup_steps=args.warmup_steps,
+#     maxq=args.maxq,
+#     alpha=args.alpha, 
+#     ema_decay=args.ema_decay,
+#     train_batch_size=args.batch_size,
+#     gradient_accumulate_every=args.gradient_accumulate_every,
+#     lr=args.lr,
+#     logdir=f'{args.logbase}/{args.dataset}/{args.exp_name}',
+#     log_freq=args.log_freq,
+#     save_freq=int(args.n_train_steps // args.n_saves),
+#     label_freq=int(args.n_train_steps // args.n_saves),
+#     wandb=args.wandb,
+# )
 if args.wandb:
     print('Wandb init...')
     wandb_dir = '/tmp/sykim/wandb'

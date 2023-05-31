@@ -7,10 +7,10 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', 'DD'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('condition_dropout', 'dr'),
+    ('seed', 's'),
     # ('maxq', 'maxq'),
     # ('conditional', 'cond'),
 ]
@@ -22,8 +22,8 @@ eval_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ##
-    ('condition_dropout', 'dr'),
-    ('epi_seed', 's'),
+    ('seed', 's'),
+    # ('epi_seed', 's'),
 ]
 
 base = {
@@ -56,13 +56,13 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
-        'prefix': ['dc/'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
+        'prefix': ['dd/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0],
+        'seed': [3, 1],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -76,7 +76,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [100],
+        'n_saves': [1],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -92,10 +92,10 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [True],
+        'multi': [False, True],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [9, 1, 2, 3, 4], 
+        'epi_seed': [0, 1, 2, 4, 5, 6, 7, 8, 9, 10], 
         'wandb': [True],
 
         ## sample_kwargs
@@ -110,9 +110,9 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/final'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/dd'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,12 +121,12 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'condition_dropout': [0.25],
+        'seed': [2,3,4],
         # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr{condition_dropout}'],
-        'diffusion_epoch': [499999],
+        'diffusion_loadpath': ['f:DDdd/H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [999999],
 
         'verbose': [False],
         'suffix': ['0'],

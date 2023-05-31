@@ -10,8 +10,8 @@ diffusion_args_to_watch = [
     ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
-    ('maxq', 'maxq'),
-    ('conditional', 'cond'),
+    ('seed', 's'),
+    # ('conditional', 'cond'),
 ]
 
 
@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [1],
+        'horizon': [16],
         'n_diffusion_steps': [20],
         'action_weight': [1],
         'loss_weights': [None],
@@ -44,19 +44,19 @@ base = {
         'normalizer': ['LimitsNormalizer'],
         'preprocess_fns': [['fetch_dataset']],
         'use_padding': [False],
-        'max_path_length': [400],
+        'max_path_length': [50],
         'max_n_episodes': [10000],
         
         ## diffuser
-        'conditional': [False],
+        'conditional': [True],
         'condition_guidance_w': [1.2],
         'condition_dropout': [0.25],
         'beta_schedule': ['cosine'],
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
@@ -66,9 +66,9 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [1e5],
+        'n_train_steps': [5e5],
         'warmup_steps': [4e5],
-        'batch_size': [32],
+        'batch_size': [128],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
         'ema_decay': [0.995],
@@ -94,7 +94,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4], 
-        'wandb': [True],
+        'wandb': [False],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -103,52 +103,32 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-
+        'control': ['every'],
+        'increasing_condition': [False],
+        
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/release'],
+        'prefix': ['eval/test'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [128], #None,
-        'n_diffusion_steps': [64],
-        'maxq': [False],
-        'conditional': [False],
+        'horizon': [16], #None,
+        'n_diffusion_steps': [20],
+        'seed': [0],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_maxq{maxq}_cond{conditional}'],
-        'diffusion_epoch': [19999],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [499999],
 
         'verbose': [False],
         'suffix': ['0'],
     },
     
-    'plan': {
-        'batch_size': 1,
-        'device': 'cuda',
 
-        ## diffusion model
-        'horizon': 256,
-        'n_diffusion_steps': 256,
-        'normalizer': 'LimitsNormalizer',
-
-        ## serialization
-        'vis_freq': 10,
-        'logbase': 'logs',
-        'prefix': 'plans/release',
-        'exp_name': watch(eval_args_to_watch),
-        'suffix': '0',
-
-        'conditional': False,
-
-        ## loading
-        'diffusion_loadpath': 'f:diffusion/H{horizon}_T{n_diffusion_steps}',
-        'diffusion_epoch': 'latest',
-    },
 
 }
 
