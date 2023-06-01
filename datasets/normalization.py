@@ -154,9 +154,13 @@ class LimitsNormalizer(Normalizer):
         maps [ xmin, xmax ] to [ -1, 1 ]
     '''
 
-    def normalize(self, x):
+    def normalize(self, x, eps=1e-7):
         ## [ 0, 1 ]
-        x = (x - self.mins) / (self.maxs - self.mins)
+        if (self.maxs - self.mins < eps).any():
+            eps = np.ones_like(self.maxs) * eps
+            x = (x - self.mins) / np.array([max(i) for i in zip((self.maxs - self.mins), eps)])
+        else:
+            x = (x - self.mins) / (self.maxs - self.mins)
         ## [ -1, 1 ]
         x = 2 * x - 1
         return x
