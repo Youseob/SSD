@@ -134,16 +134,16 @@ class DiffuserCritic(object):
             self.model.train()
             timer = Timer()
             ## Critic
+            # batch = next(self.dataloader_train)
+            # batch = batch_to_device(batch)
+            # if 'Fetch' in self.env_name or 'maze' in self.env_name:
+            #     # any states drawn from D
+            #     goal_rand = batch.goals.clone()
+            # else:
+            #     goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            if 'Fetch' in self.env_name or 'maze' in self.env_name:
-                # any states drawn from D
-                goal_rand = batch.goals.clone()
-            else:
-                goal_rand = batch.rtgs[:, 0].clone()
-            batch = next(self.dataloader_train)
-            batch = batch_to_device(batch)
-            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
+            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss_random(batch, None, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
             loss_q1.backward()
@@ -220,7 +220,7 @@ class DiffuserCritic(object):
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand_val, self.ema_model)
+                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss_random(batch_val, goal_rand_val, self.ema_model)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')

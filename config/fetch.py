@@ -30,8 +30,8 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16],
-        'n_diffusion_steps': [100],
+        'horizon': [32],
+        'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
         'loss_discount': [1],
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e4],
+        'n_train_steps': [5e5],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [5],
+        'n_saves': [50],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -103,7 +103,7 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['every'],
+        'control': ['fetch'],
         'increasing_condition': [False],
         
         ## serialization
@@ -117,7 +117,7 @@ base = {
 
         ## diffusion model
         'horizon': [16], #None,
-        'n_diffusion_steps': [20],
+        'n_diffusion_steps': [100],
         'seed': [0],
 
         ## loading

@@ -414,9 +414,11 @@ class HindsightCritic(nn.Module):
     def loss(self, batch, goal_rand, ema_model):
         trajectories = batch.trajectories
         batch_size, horizon, _ = trajectories.shape
-        observation, action, next_observation, next_action = self.unnorm_transition(trajectories) # horizon-1
+        
+        observation, action, next_observation, next_action = self.unnorm_transition(trajectories)
         observation_cat = observation.repeat(2,1)
         action_cat = action.repeat(2,1)
+        
         # hindsight goals
         if 'maze' in self.env_name:
             # unnormalized value
@@ -430,7 +432,8 @@ class HindsightCritic(nn.Module):
                 goals = torch.cat([next_observation[:, :self.goal_dim], goal_rand], 0)     
         else:
             # normalized value
-            goals = torch.cat([batch.goals, goal_rand], 0)        
+            goals = torch.cat([batch.goals, goal_rand], 0)       
+         
         device = trajectories.device
         
         # hindsight values R
@@ -456,6 +459,56 @@ class HindsightCritic(nn.Module):
         
         return loss1, loss2, targ_q.mean(), (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
 
+    def loss_random(self, batch, goal_rand, ema_model):
+        trajectories = batch.trajectories
+        batch_size, horizon, _ = trajectories.shape
+        her_indexes, t_indexes = self.make_indices(batch_size, horizon-1)
+        observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
+        action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
+        next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
+        next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions')
+        
+        # Hindsight goals
+        if 'Fetch' in self.env_name and self.has_object:
+            goals = to_np(batch.goals.clone())
+            np.random.shuffle(goals)
+            goals = to_torch(goals)
+            goals[her_indexes] = next_observation[her_indexes, t_indexes, self.goal_dim:2*self.goal_dim]
+        else:
+            goals = to_np(batch.goals.clone())
+            np.random.shuffle(goals)
+            goals = to_torch(goals)
+            goals[her_indexes] = next_observation[her_indexes, t_indexes, :self.goal_dim]    
+         
+        device = trajectories.device
+        
+        # Hindsight values R
+        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=horizon-1)
+        next_q1, next_q2 = self.forward_target(next_observation, next_action, goals_rpt)
+        td_target1 = self.gamma * next_q1
+        td_target2 = self.gamma * next_q2
+        td_target1[her_indexes, t_indexes] = 1
+        td_target2[her_indexes, t_indexes] = 1
+        
+        
+        # next_action_sampled = ema_model(next_observation, values, goal_rand)
+
+        # calaulate q value
+        pred_q1, pred_q2 = self.forward(observation, action, goals_rpt)
+        targ_q1, targ_q2 = self.forward_target(observation, action, goals_rpt)
+        targ_q = torch.min(targ_q1, targ_q2)
+        
+        # sample negative action
+        x = torch.cat([observation, goals_rpt], -1)
+        negative_action = self.actor(x)
+        
+        min_q1_loss, min_q2_loss = self.forward(observation, negative_action.detach(), goals_rpt)
+        
+        loss1 = F.mse_loss(td_target1.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
+        loss2 = F.mse_loss(td_target2.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
+        
+        return loss1, loss2, targ_q.mean(), (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
+    
     def unnorm(self, x, key):
         return to_torch(self.normalizer.unnormalize(to_np(x), key))
 
@@ -470,3 +523,9 @@ class HindsightCritic(nn.Module):
 
         
         return observation, action, next_observation, next_action
+
+    def make_indices(self, batch_size, horizon, relabel_percent=0.5):
+        her_indexes = np.where(np.random.uniform(size=batch_size) < relabel_percent)
+        t_indexes = (np.random.randint(horizon, size=batch_size))[her_indexes]
+        return her_indexes, t_indexes
+
