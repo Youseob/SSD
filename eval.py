@@ -17,7 +17,7 @@ from utils.arrays import to_torch, to_np
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchReach-v1'
+    dataset: str = 'FetchPickAndPlace-v1'
     config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
@@ -102,6 +102,8 @@ elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
+elif args.control == 'fetch':
+    policy = FetchControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 else: 
     NotImplementedError(args.control)
 
@@ -137,7 +139,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device)
+condition = torch.ones((1, horizon, 1)).to(args.device) * 0.8
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -154,7 +156,7 @@ for t in range(env.max_episode_steps):
         state = state['observation']
 
     if args.increasing_condition:
-        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
 
     action = policy.act(state, condition, target, at_goal)
 

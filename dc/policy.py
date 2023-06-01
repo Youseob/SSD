@@ -100,3 +100,22 @@ class SampleEveryControl:
         action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
         
         return action
+    
+class FetchControl:
+    def __init__(self, ema_model, normalizer, observation_dim, goal_dim, has_object):
+        self.ema_model = ema_model
+        self.normalizer = normalizer
+        self.observation_dim = observation_dim
+        self.goal_dim = goal_dim
+        self.has_object = has_object
+        
+    def act(self, state, condition, target, at_goal=None):
+        if at_goal:
+            action = np.zeros((4,))
+        else:
+            normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
+            normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
+            samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
+            action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
+        
+        return action
