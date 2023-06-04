@@ -95,7 +95,11 @@ dc = DiffuserCritic(
 
 dc.load(args.diffusion_epoch)
 
-has_object = hasattr(dataset.env, 'has_object')
+try: 
+    has_object = dataset.env.has_object
+except:
+    has_object = False
+    
 if args.control == 'torque':
     policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'position':
@@ -113,7 +117,7 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='diffusercritic',
+               entity='sungyoon',
                config=args,
                dir=wandb_dir,
                )
@@ -139,7 +143,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device) * 0.8
+condition = torch.ones((1, horizon, 1)).to(args.device)
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 

@@ -178,7 +178,7 @@ def her_maze2d_set_terminals(env):
 
         dataset['timeouts'] = timeouts
         dataset['goals'] = her_goal
-        dataset['rewards'] = rewards
+        # dataset['rewards'] = rewards
         return dataset
 
     return _fn
@@ -227,6 +227,7 @@ def fetch_dataset(env):
         dataset['rewards'] = rewards.reshape((np.prod(shape), -1))
         dataset['timeouts'] = timeouts.reshape((np.prod(shape), -1))
         dataset['goals'] = dataset['g'].reshape((np.prod(shape), -1))
+        dataset['achieved_goals'] = dataset['ag'][:,:-1].reshape((np.prod(shape), -1))
         dataset['terminals'] = np.zeros_like(dataset['timeouts']).astype(np.bool8)
         del dataset['o']
         del dataset['u']

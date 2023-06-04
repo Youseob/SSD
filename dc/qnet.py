@@ -462,19 +462,34 @@ class HindsightCritic(nn.Module):
     def loss_random(self, batch, goal_rand, ema_model):
         trajectories = batch.trajectories
         batch_size, horizon, _ = trajectories.shape
-        her_indexes, t_indexes = self.make_indices(batch_size, horizon-1)
-        observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
-        action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
-        next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
-        next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions')
         
         # Hindsight goals
         if 'Fetch' in self.env_name and self.has_object:
+            her_indexes, t_indexes = self.make_indices(batch_size, horizon)
+            
+            observation = self.unnorm(trajectories[:, :-1 :self.observation_dim], 'observations')
+            action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
+            
+            next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
+            next_observation = self.add_last_obs(next_observation)
+            
+            last_action = ema_model(next_observation[:, -1], torch.ones((batch_size, horizon, 1)), batch.goals)[:,:,self.observation_dim:]
+            next_action = torch.cat([self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions'),
+                                    last_action], 1)
+            
             goals = to_np(batch.goals.clone())
             np.random.shuffle(goals)
             goals = to_torch(goals)
             goals[her_indexes] = next_observation[her_indexes, t_indexes, self.goal_dim:2*self.goal_dim]
         else:
+            her_indexes, t_indexes = self.make_indices(batch_size, horizon-1)
+            
+            observation = self.unnorm(trajectories[:, :-1 :self.observation_dim], 'observations')
+            action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
+            
+            next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
+            next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions')
+            
             goals = to_np(batch.goals.clone())
             np.random.shuffle(goals)
             goals = to_torch(goals)
@@ -483,7 +498,7 @@ class HindsightCritic(nn.Module):
         device = trajectories.device
         
         # Hindsight values R
-        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=horizon-1)
+        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=horizon)
         next_q1, next_q2 = self.forward_target(next_observation, next_action, goals_rpt)
         td_target1 = self.gamma * next_q1
         td_target2 = self.gamma * next_q2
@@ -516,10 +531,10 @@ class HindsightCritic(nn.Module):
         return to_torch(self.normalizer(to_np(x), key))
     
     def unnorm_transition(self, trajectories):
-        observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
-        action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
-        next_observation = self.unnorm(trajectories[:, 1, :self.observation_dim], 'observations')
-        next_action = self.unnorm(trajectories[:, 1, self.observation_dim:], 'actions')
+        observation = self.unnorm(trajectories[:, -2, :self.observation_dim], 'observations')
+        action = self.unnorm(trajectories[:, -2, self.observation_dim:], 'actions')
+        next_observation = self.unnorm(trajectories[:, -1, :self.observation_dim], 'observations')
+        next_action = self.unnorm(trajectories[:, -1, self.observation_dim:], 'actions')
 
         
         return observation, action, next_observation, next_action
@@ -528,4 +543,11 @@ class HindsightCritic(nn.Module):
         her_indexes = np.where(np.random.uniform(size=batch_size) < relabel_percent)
         t_indexes = (np.random.randint(horizon, size=batch_size))[her_indexes]
         return her_indexes, t_indexes
+    
+    def add_last_obs(self, obs):
+        last_obs = obs[:, -1]
+        last_obs[:, :, :self.goal_dim] = last_obs[:, :, self.goal_dim:2*self.goal_dim]
+        last_obs[:, :, 2*self.goal_dim:3*self.goal_dim] = torch.zeros_like(last_obs[:, :, 2*self.goal_dim:3*self.goal_dim])
+        return torch.cat([obs, last_obs], 1)
+    
 

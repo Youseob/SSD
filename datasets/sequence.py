@@ -83,8 +83,8 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.path_lengths = fields.path_lengths
             
         self.normalize()
-        # if 'Fetch' in env.name or 'maze' in env.name:
-        #     self.normalize(['goals'])
+        if 'Fetch' in env.name or 'maze' in env.name:
+            self.normalize(['achieved_goals'])
 
         print(fields)
         # shapes = {key: val.shape for key, val in self.fields.items()}
@@ -135,7 +135,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         # conditions = self.get_conditions(observations)
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
             rewards = self.fields.rewards[path_ind, start:end]
-            goals = self.fields.normed_goals[path_ind, end-1]
+            goals = self.fields.normed_achieved_goals[path_ind, end-1]
         else:
             rewards = self.fields.normed_rewards[path_ind, start:end]
             goals = self.fields.normed_rtgs[path_ind, start]
