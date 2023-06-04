@@ -85,7 +85,7 @@ class DiffuserCritic(object):
         self.critic_target = copy.deepcopy(self.critic)
         self.critic_optimizer1 = torch.optim.Adam(self.critic.qf1.parameters(), lr=lr)
         self.critic_optimizer2 = torch.optim.Adam(self.critic.qf2.parameters(), lr=lr)
-        self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
+        # self.actor_optimizer = torch.optim.Adam(self.critic.actor.parameters(), lr=lr)
         
         self.dataset = dataset
         try:
@@ -147,7 +147,7 @@ class DiffuserCritic(object):
                 goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
+            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss_random(batch, goal_rand, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
             loss_q1.backward()
@@ -157,10 +157,10 @@ class DiffuserCritic(object):
             loss_q2.backward()
             self.critic_optimizer2.step()
             
-            self.actor_optimizer.zero_grad()
-            loss_actor = -q
-            loss_actor.backward()
-            self.actor_optimizer.step()
+            # self.actor_optimizer.zero_grad()
+            # loss_actor = -q
+            # loss_actor.backward()
+            # self.actor_optimizer.step()
             
             loss_q = torch.min(loss_q1, loss_q2)
             
@@ -225,7 +225,7 @@ class DiffuserCritic(object):
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand_val, self.ema_model)
+                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss_random(batch_val, goal_rand_val, self.ema_model)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')

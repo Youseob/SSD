@@ -467,15 +467,17 @@ class HindsightCritic(nn.Module):
         if 'Fetch' in self.env_name and self.has_object:
             her_indexes, t_indexes = self.make_indices(batch_size, horizon)
             
-            observation = self.unnorm(trajectories[:, :-1 :self.observation_dim], 'observations')
-            action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
+            observation = self.unnorm(trajectories[:, :, :self.observation_dim], 'observations')
+            action = self.unnorm(trajectories[:, :, self.observation_dim:], 'actions')
             
             next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
             next_observation = self.add_last_obs(next_observation)
             
-            last_action = ema_model(next_observation[:, -1], torch.ones((batch_size, horizon, 1)), batch.goals)[:,:,self.observation_dim:]
+            last_action = ema_model(next_observation[:, -1], 
+                                    torch.ones_like(batch.rtgs), 
+                                    batch.goals, self.has_object)[:,0,self.observation_dim:]
             next_action = torch.cat([self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions'),
-                                    last_action], 1)
+                                    last_action[:,None]], 1)
             
             goals = to_np(batch.goals.clone())
             np.random.shuffle(goals)
@@ -495,10 +497,10 @@ class HindsightCritic(nn.Module):
             goals = to_torch(goals)
             goals[her_indexes] = next_observation[her_indexes, t_indexes, :self.goal_dim]    
          
-        device = trajectories.device
         
         # Hindsight values R
-        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=horizon)
+        h = horizon if 'Fetch' in self.env_name and self.has_object else horizon -1
+        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=h)
         next_q1, next_q2 = self.forward_target(next_observation, next_action, goals_rpt)
         td_target1 = self.gamma * next_q1
         td_target2 = self.gamma * next_q2
@@ -514,10 +516,21 @@ class HindsightCritic(nn.Module):
         targ_q = torch.min(targ_q1, targ_q2)
         
         # sample negative action
-        x = torch.cat([observation, goals_rpt], -1)
-        negative_action = self.actor(x)
+        num_random_actions = 10
+        random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
+        obs_rpt = observation[:,0].repeat_interleave(num_random_actions, axis=0)
+        goal_rpt = goals.repeat_interleave(num_random_actions, axis=0)
+        rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goal_rpt)        
+        rand_q1 = rand_q1.reshape(batch_size, -1)
+        rand_q2 = rand_q2.reshape(batch_size, -1)
+        i1 = torch.distributions.Categorical(logits=rand_q1.detach()).sample()
+        i2 = torch.distributions.Categorical(logits=rand_q2.detach()).sample()
+        # x = torch.cat([observation, goals_rpt], -1)
+        # negative_action = self.actor(x)
         
-        min_q1_loss, min_q2_loss = self.forward(observation, negative_action.detach(), goals_rpt)
+        # min_q1_loss, min_q2_loss = self.forward(observation, negative_action.detach(), goals_rpt)
+        min_q1_loss = rand_q1[torch.arange(batch_size), i1].mean()
+        min_q2_loss = rand_q2[torch.arange(batch_size), i2].mean()
         
         loss1 = F.mse_loss(td_target1.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
         loss2 = F.mse_loss(td_target2.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
@@ -545,9 +558,10 @@ class HindsightCritic(nn.Module):
         return her_indexes, t_indexes
     
     def add_last_obs(self, obs):
-        last_obs = obs[:, -1]
-        last_obs[:, :, :self.goal_dim] = last_obs[:, :, self.goal_dim:2*self.goal_dim]
-        last_obs[:, :, 2*self.goal_dim:3*self.goal_dim] = torch.zeros_like(last_obs[:, :, 2*self.goal_dim:3*self.goal_dim])
+        last_obs = obs[:, -1].clone()
+        last_obs[:, :self.goal_dim] = obs[:, -1, self.goal_dim:2*self.goal_dim]
+        last_obs[:, 2*self.goal_dim:3*self.goal_dim] = torch.zeros_like(last_obs[:, 2*self.goal_dim:3*self.goal_dim])
+        last_obs = last_obs[:,None]
         return torch.cat([obs, last_obs], 1)
     
 
