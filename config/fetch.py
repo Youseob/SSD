@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [4, 16, 32],
+        'horizon': [32, 48],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,7 +57,7 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/reduce'],
+        'prefix': ['dc/fetch'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e4],
+        'n_train_steps': [1e6],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [5],
+        'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -91,10 +91,10 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        # 'preprocess_fns': [['maze2d_set_terminals']],
+        'preprocess_fns': [['fetch_dataset']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4], 
-        'wandb': [False],
+        'wandb': [True],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -122,7 +122,7 @@ base = {
 
         ## loading
         'diffusion_loadpath': ['f:dc/fetch_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [29999],
+        'diffusion_epoch': [49999],
 
         'verbose': [False],
         'suffix': ['0'],

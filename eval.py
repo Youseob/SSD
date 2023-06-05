@@ -36,11 +36,6 @@ args = Parser().parse_args(iterparser)
 
 env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
-action_dim = env.action_space.shape[0]
-if 'Fetch' in args.dataset:
-    observation_dim = env.observation_space['observation'].shape[0]
-else:
-    observation_dim = env.observation_space.shape[0]
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -53,6 +48,9 @@ dataset = datasets.SequenceDataset(
     use_padding=args.use_padding,
     seed=args.seed,
 )
+
+observation_dim = dataset.observation_dim
+action_dim = dataset.action_dim
 
 if 'maze2d' in args.dataset:
     goal_dim = 2
@@ -127,7 +125,7 @@ if args.wandb:
 ##############################################################################
 ############################## Start iteration ###############################
 ##############################################################################
-env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
+# env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 state = env.reset()
 
 ## Set target and condition
@@ -144,7 +142,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device) * 0.5
+condition = torch.ones((1, horizon, 1)).to(args.device) * 0.4
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -159,7 +157,7 @@ for t in range(env.max_episode_steps):
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
     elif 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
-        observation = state['observation']
+        observation = state['observation'][np.arange(11)]
 
     if args.increasing_condition:
         condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
@@ -221,7 +219,7 @@ if 'Fetch' in args.dataset:
     success = (reward == 1)
     print('success:', success)
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout_sim)
-    env.close()
+    # env.close()
 else:
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
     
