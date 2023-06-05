@@ -221,8 +221,13 @@ def fetch_dataset(env):
 
         rtg = discount_cumsum(rewards)
         dataset['rtgs'] = rtg.reshape((np.prod(shape), -1))
-        dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
-        dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
+        if env.has_object:
+            extract = np.arange(11)
+            dataset['observations'] = dataset['o'][:,:-1, extract].reshape((np.prod(shape), -1))
+            dataset['next_observations'] = dataset['o'][:,1:, extract].reshape((np.prod(shape), -1))
+        else:
+            dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
+            dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
         dataset['actions'] = dataset['u'].reshape((np.prod(shape), -1))
         dataset['rewards'] = rewards.reshape((np.prod(shape), -1))
         dataset['timeouts'] = timeouts.reshape((np.prod(shape), -1))

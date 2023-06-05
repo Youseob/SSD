@@ -135,7 +135,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         # conditions = self.get_conditions(observations)
         if hasattr(self.env, "_target") or hasattr(self.env, 'goal'):
             rewards = self.fields.rewards[path_ind, start:end]
-            goals = self.fields.normed_achieved_goals[path_ind, end-1]
+            goals = self.fields.normed_achieved_goals[path_ind, start:end]
         else:
             rewards = self.fields.normed_rewards[path_ind, start:end]
             goals = self.fields.normed_rtgs[path_ind, start]

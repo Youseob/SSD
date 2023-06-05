@@ -5,6 +5,7 @@ import os
 import numpy as np
 import copy
 from d4rl import reverse_normalized_score, get_normalized_score
+from gym import wrappers
 
 import datasets
 from dc.dc import DiffuserCritic
@@ -126,7 +127,7 @@ if args.wandb:
 ##############################################################################
 ############################## Start iteration ###############################
 ##############################################################################
-
+env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 state = env.reset()
 
 ## Set target and condition
@@ -143,7 +144,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device)
+condition = torch.ones((1, horizon, 1)).to(args.device) * 0.5
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -151,24 +152,25 @@ total_reward = 0
 rollout = []
 rollout_sim = []
 at_goal = False
+
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
     elif 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
-        state = state['observation']
+        observation = state['observation']
 
     if args.increasing_condition:
         condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
 
-    action = policy.act(state, condition, target, at_goal)
+    action = policy.act(observation, condition, target, at_goal)
 
     # Store rollout for rendering
     if 'Fetch' in args.dataset:
         rollout_sim.append(copy.deepcopy(env.sim.get_state()))
     else:
-        rollout.append(state[None, ].copy())
+        rollout.append(observation[None, ].copy())
     
     # Step
     next_state, reward, done, _ = env.step(action)
@@ -219,6 +221,7 @@ if 'Fetch' in args.dataset:
     success = (reward == 1)
     print('success:', success)
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout_sim)
+    env.close()
 else:
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
     

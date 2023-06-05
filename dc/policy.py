@@ -21,7 +21,7 @@ class GoalTorqueControl:
             if len(self.action_list) == 0:
                 normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
                 normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
-                samples = self.ema_model(normed_state, condition, normed_target)
+                samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
                 self.action_list = self.normalizer.unnormalize(to_np(samples)[0, :, self.observation_dim:], 'actions')
             action = self.action_list[0]
             self.action_list = np.delete(self.action_list, 0, 0)

@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [32],
+        'horizon': [4, 16, 32],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,7 +57,7 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/'],
+        'prefix': ['dc/reduce'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e5],
+        'n_train_steps': [5e4],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [50],
+        'n_saves': [5],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -110,19 +110,19 @@ base = {
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/test'],
+        'prefix': ['eval/fetch'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [16], #None,
-        'n_diffusion_steps': [100],
+        'horizon': [4], #None,
+        'n_diffusion_steps': [50],
         'seed': [0],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [9999],
+        'diffusion_loadpath': ['f:dc/fetch_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [29999],
 
         'verbose': [False],
         'suffix': ['0'],
