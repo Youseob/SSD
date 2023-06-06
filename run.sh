@@ -1,6 +1,6 @@
 #!/bin/bash
 cd ~/DC
-for diffusion_epoch in 49999
+for diffusion_epoch in 499999
 do
 for epi_seed in {0..9}
 do
@@ -8,7 +8,7 @@ do
                                                            --control fetch \
                                                            --increasing_condition False \
                                                            --horizon 32 \
-                                                           --seed 0 \
+                                                           --seed 1 \
                                                             --diffusion_epoch $diffusion_epoch --epi_seed $epi_seed
 done
 done

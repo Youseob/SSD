@@ -61,7 +61,7 @@ base = {
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0],
+        'seed': [0, 1, 2],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -116,13 +116,13 @@ base = {
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [4], #None,
+        'horizon': [32], #None,
         'n_diffusion_steps': [50],
         'seed': [0],
 
         ## loading
         'diffusion_loadpath': ['f:dc/fetch_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [49999],
+        'diffusion_epoch': [599999],
 
         'verbose': [False],
         'suffix': ['0'],

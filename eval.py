@@ -12,6 +12,7 @@ from dc.dc import DiffuserCritic
 from dc.policy import *
 import utils
 from utils.arrays import to_torch, to_np
+from utils.helpers import discounted_return
 
 ##############################################################################
 ################################ Config setup ################################
@@ -149,6 +150,7 @@ gamma = dc.critic.gamma
 total_reward = 0
 rollout = []
 rollout_sim = []
+rewards = []
 at_goal = False
 
 for t in range(env.max_episode_steps):
@@ -176,11 +178,19 @@ for t in range(env.max_episode_steps):
     # If mujoco, decrease target rtg
     if 'Fetch' in args.dataset:
         reward += 1
-        total_reward += reward
-        score = total_reward
+        rewards.append(reward)
+        dis_return, total_reward = discounted_return(np.array(rewards), 0.98)
+        distance = np.linalg.norm(state['achieved_goal'] - state['desired_goal'])
+        output = {'reward': reward, \
+                 'total_reward': total_reward, \
+                 'discounted_return': dis_return, \
+                 'distance': distance}
     elif 'maze2d' in args.dataset:
         total_reward += reward
         score = env.get_normalized_score(total_reward)
+        output = {'reward': reward, \
+                'total_reward': total_reward, \
+                'score': score}
     else:
         if args.decreasing_target:
             # target = dataset.normalizer.unnormalize(target, 'rtgs')
@@ -188,18 +198,18 @@ for t in range(env.max_episode_steps):
             # target = dataset.normalizer(target, 'rtgs')
         total_reward += reward
         score = env.get_normalized_score(total_reward)
-        
+        output = {'reward': reward, \
+                'total_reward': total_reward, \
+                'score': score}
+    
+    output_str = ' | '.join([f'{k}: {v:.4f} |' for k, v in output.items()])
     print(
-        f't: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | '
+        f't: {t} | {output_str} '
         f'{action}'
     )
     
     if args.wandb:
-        wandb.log({
-            "reward": reward,
-            "total_reward": total_reward,
-            "score": score,
-        }, step = t)
+        wandb.log(output, step = t)
 
     if 'maze2d' in args.dataset:
         xy = next_state[:2]

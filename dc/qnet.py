@@ -478,7 +478,7 @@ class HindsightCritic(nn.Module):
         num_random_actions = 10
         random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
         obs_rpt = observation.repeat_interleave(num_random_actions, axis=0)
-        goals_rrpt = batch.goals[:, -1].repeat_interleave(num_random_actions, axis=0)
+        goals_rrpt = hindsight_goals.repeat_interleave(num_random_actions, axis=0)
         rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goals_rrpt)        
         rand_q1 = rand_q1.reshape(batch_size, -1)
         rand_q2 = rand_q2.reshape(batch_size, -1)
