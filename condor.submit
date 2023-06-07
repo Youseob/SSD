@@ -16,9 +16,9 @@ getenv=True
 #requirements=(Machine=="c10"||Machine=="c13"||Machine=="c14"||Machine=="c15")
 #requirements=(Machine=="c07"||Machine=="c20"||Machine=="c21"||Machine=="c43")
 #requirements=(Machine=="c30"||Machine=="c32"||Machine=="c04"||Machine=="c07"||Machine=="c43"||Machine=="c44"||Machine=="c45")
-#requirements=(Machine=="c04"||Machine=="c07"||Machine=="c20"||Machine=="c21"||Machine=="c23"||Machine=="c24"||Machine=="c25"||Machine=="c26"||Machine=="c27"||Machine=="c28"||Machine=="c29"||Machine=="c30"||Machine=="c31"||Machine=="c32"||Machine=="c33"||Machine=="c34"||Machine=="c43"||Machine=="c44"||Machine=="c45")
+#requirements=(Machine=="c04"||Machine=="c23"||Machine=="c24"||Machine=="c25"||Machine=="c26"||Machine=="c27"||Machine=="c28"||Machine=="c29"||Machine=="c30"||Machine=="c31"||Machine=="c32"||Machine=="c33"||Machine=="c34"||Machine=="c39"||Machine=="c40"||Machine=="c41"||Machine=="c42")
 #requirements=(Machine=="c31"||Machine=="c33"||Machine=="c34"||Machine=="c39"||Machine=="c40"||Machine=="c41"||Machine=="c42"||Machine=="c43")
-requirements=(Machine=="c07"||Machine=="c30"||Machine=="c32"||Machine=="c43"||Machine=="c44"||Machine=="c45")
+requirements=(Machine=="c43"||Machine=="c44"||Machine=="c45")
 should_transfer_files=YES
 when_to_transfer_output=ON_EXIT_OR_EVICT
 
@@ -26,8 +26,8 @@ Output=/ext2/sykim/condor/output/output.$(Process).out
 Log=/ext2/sykim/condor/log/log.$(Process).out
 Error=/ext2/sykim/condor/error/error.$(Process).out
 ## chain domain
-#RequestMemory=31000
-RequestMemory=63000
-RequestCpus=8
+RequestMemory=31000
+#RequestMemory=63000
+RequestCpus=4
 #RequestDisk=100
 queue 6

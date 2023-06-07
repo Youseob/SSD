@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', '2'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [32, 48],
+        'horizon': [4, 16, 32],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,11 +57,11 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/fetch'],
+        'prefix': ['dc/mixed'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1, 2],
+        'seed': [0, 1],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -93,7 +93,7 @@ base = {
         'batch_size': [1],
         'preprocess_fns': [['fetch_dataset']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 3, 4], 
+        'epi_seed': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
         'wandb': [True],
 
         ## sample_kwargs
@@ -104,25 +104,25 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['fetch'],
-        'increasing_condition': [False],
+        'increasing_condition': [True],
         
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/fetch'],
+        'prefix': ['eval/mixed'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [32], #None,
+        'horizon': [4, 16, 32], #None,
         'n_diffusion_steps': [50],
         'seed': [0],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/fetch_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [599999],
+        'diffusion_loadpath': ['f:2dc/mixed_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [99999, 199999, 299999],
 
         'verbose': [False],
         'suffix': ['0'],

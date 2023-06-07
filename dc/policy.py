@@ -112,6 +112,7 @@ class FetchControl:
     def act(self, state, condition, target, at_goal=None):
         if at_goal:
             action = np.zeros((4,))
+            # action[:3] = target - state[:self.goal_dim]
         else:
             normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
             normed_target = to_torch(self.normalizer(target, 'achieved_goals')).reshape(1, self.goal_dim)

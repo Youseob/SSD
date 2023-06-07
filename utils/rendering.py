@@ -296,6 +296,8 @@ class FetchRenderer(MuJoCoRenderer):
         # glfw.set_window_size(self.viewer, width, height)
         self.env.sim.set_state(observation)
         self.env.sim.forward()
+        setattr(self.viewer.cam, 'azimuth', 135.)
+        # setattr(self.viewer.cam, 'elevation', 360.)
         self.viewer.render(width, height)
         data = self.viewer.read_pixels(width, height, depth=False)
         return data[::-1, :, :]

@@ -143,7 +143,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device) * 0.4
+condition = torch.ones((1, horizon, 1)).to(args.device)
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -202,9 +202,9 @@ for t in range(env.max_episode_steps):
                 'total_reward': total_reward, \
                 'score': score}
     
-    output_str = ' | '.join([f'{k}: {v:.4f} |' for k, v in output.items()])
+    output_str = ' | '.join([f'{k}: {v:.4f}' for k, v in output.items()])
     print(
-        f't: {t} | {output_str} '
+        f't: {t} | {output_str} |'
         f'{action}'
     )
     

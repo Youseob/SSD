@@ -142,12 +142,12 @@ class DiffuserCritic(object):
             batch = batch_to_device(batch)
             if 'Fetch' in self.env_name or 'maze' in self.env_name:
                 # any states drawn from D
-                goal_rand = batch.goals.clone()
+                goal_rand = batch.goals[:, 0].clone()
             else:
                 goal_rand = batch.rtgs[:, 0].clone()
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand[:, 0], self.ema_model)
+            loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
             
             self.critic_optimizer1.zero_grad()
             loss_q1.backward()
@@ -182,10 +182,6 @@ class DiffuserCritic(object):
                                             self.critic.unnorm(action, 'actions'), 
                                             self.critic.unnorm(goal_rpt, 'achieved_goals'))
                 elif 'Fetch' in self.env_name:
-                    # if self.has_object:
-                    #     goal = trajectories[:, -1, self.goal_dim:2*self.goal_dim]
-                    # else:
-                    #     goal = trajectories[:, -1, :self.goal_dim]
                     goal = batch.goals[:, -1].clone()
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
@@ -199,6 +195,7 @@ class DiffuserCritic(object):
                                             goal_rpt)
                     
                 loss_d = self.diffuser.loss(trajectories, values.detach(), goal, has_object=self.has_object)
+                loss_d = loss_d / self.gradient_accumulate_every
                 loss_d.backward()
             self.diffuser_optimizer.step()
             
