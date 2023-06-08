@@ -29,7 +29,7 @@ class GaussianDiffusion(nn.Module):
             betas = linear_beta_schedule(n_timesteps)
         elif beta_schedule == 'cosine':
             betas = cosine_beta_schedule(n_timesteps)
-        elif beta_schedule == 'linear':
+        elif beta_schedule == 'vp':
             betas = vp_beta_schedule(n_timesteps)
         else:
             NotImplementedError(beta_schedule)

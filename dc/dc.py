@@ -186,7 +186,8 @@ class DiffuserCritic(object):
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))
+                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))[:, -1]
+                    values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
                 else:
                     goal = batch.rtgs[:, -1].clone()
                     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)

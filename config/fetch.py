@@ -11,7 +11,7 @@ diffusion_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
-    # ('conditional', 'cond'),
+    ('beta_schedule', 'beta'),
 ]
 
 
@@ -118,11 +118,11 @@ base = {
         ## diffusion model
         'horizon': [4, 16, 32], #None,
         'n_diffusion_steps': [50],
-        'seed': [0],
+        'seed': [0, 1],
 
         ## loading
         'diffusion_loadpath': ['f:2dc/mixed_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [99999, 199999, 299999],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],
