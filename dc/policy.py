@@ -21,7 +21,7 @@ class GoalTorqueControl:
             if len(self.action_list) == 0:
                 normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
                 normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
-                samples = self.ema_model(normed_state, condition, normed_target)
+                samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
                 self.action_list = self.normalizer.unnormalize(to_np(samples)[0, :, self.observation_dim:], 'actions')
             action = self.action_list[0]
             self.action_list = np.delete(self.action_list, 0, 0)
@@ -98,5 +98,25 @@ class SampleEveryControl:
         normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
         samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
         action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
+        
+        return action
+    
+class FetchControl:
+    def __init__(self, ema_model, normalizer, observation_dim, goal_dim, has_object):
+        self.ema_model = ema_model
+        self.normalizer = normalizer
+        self.observation_dim = observation_dim
+        self.goal_dim = goal_dim
+        self.has_object = has_object
+        
+    def act(self, state, condition, target, at_goal=None):
+        if at_goal:
+            action = np.zeros((4,))
+            # action[:3] = target - state[:self.goal_dim]
+        else:
+            normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
+            normed_target = to_torch(self.normalizer(target, 'achieved_goals')).reshape(1, self.goal_dim)
+            samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
+            action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
         
         return action

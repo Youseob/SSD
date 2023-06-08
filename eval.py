@@ -3,21 +3,24 @@ import wandb
 import torch
 import os
 import numpy as np
+import copy
 from d4rl import reverse_normalized_score, get_normalized_score
+from gym import wrappers
 
 import datasets
 from dc.dc import DiffuserCritic
 from dc.policy import *
 import utils
 from utils.arrays import to_torch, to_np
+from utils.helpers import discounted_return
 
 ##############################################################################
 ################################ Config setup ################################
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'hopper-medium-expert-v2'
-    config: str = 'config.locomotion'
+    dataset: str = 'FetchPickAndPlace-v1'
+    config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -34,11 +37,6 @@ args = Parser().parse_args(iterparser)
 
 env = datasets.load_environment(args.dataset)
 env.seed(args.epi_seed)
-action_dim = env.action_space.shape[0]
-if 'Fetch' in args.dataset:
-    observation_dim = env.observation_space['observation'].shape[0]
-else:
-    observation_dim = env.observation_space.shape[0]
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -52,12 +50,15 @@ dataset = datasets.SequenceDataset(
     seed=args.seed,
 )
 
+observation_dim = dataset.observation_dim
+action_dim = dataset.action_dim
+
 if 'maze2d' in args.dataset:
     goal_dim = 2
     renderer = utils.Maze2dRenderer(env=args.dataset)
 elif 'Fetch' in args.dataset:
     goal_dim = 3
-    renderer = utils.MuJoCoRenderer(env=args.dataset)
+    renderer = utils.FetchRenderer(env=args.dataset)
 else:
     goal_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
@@ -76,6 +77,7 @@ dc = DiffuserCritic(
     clip_denoised=args.clip_denoised,
     condition_guidance_w=args.condition_guidance_w,
     beta_schedule=args.beta_schedule,
+    action_weight=args.action_weight,
     # warmup_steps=args.warmup_steps,
     maxq=args.maxq,
     alpha=args.alpha, 
@@ -93,13 +95,19 @@ dc = DiffuserCritic(
 
 dc.load(args.diffusion_epoch)
 
-has_object = hasattr(dataset.env, 'has_object')
+try: 
+    has_object = dataset.env.has_object
+except:
+    has_object = False
+    
 if args.control == 'torque':
     policy = GoalTorqueControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
+elif args.control == 'fetch':
+    policy = FetchControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 else: 
     NotImplementedError(args.control)
 
@@ -109,7 +117,7 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='diffusercritic',
+               entity='sungyoon',
                config=args,
                dir=wandb_dir,
                )
@@ -118,7 +126,7 @@ if args.wandb:
 ##############################################################################
 ############################## Start iteration ###############################
 ##############################################################################
-
+# env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 state = env.reset()
 
 ## Set target and condition
@@ -141,70 +149,91 @@ gamma = dc.critic.gamma
 
 total_reward = 0
 rollout = []
+rollout_sim = []
+rewards = []
 at_goal = False
+
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset:
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
     elif 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
-        state = state['observation']
+        observation = state['observation'][np.arange(11)]
 
     if args.increasing_condition:
-        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
 
-    action = policy.act(state, condition, target, at_goal)
+    action = policy.act(observation, condition, target, at_goal)
 
-    rollout.append(state[None, ].copy())
-        
+    # Store rollout for rendering
+    if 'Fetch' in args.dataset:
+        rollout_sim.append(copy.deepcopy(env.sim.get_state()))
+    else:
+        rollout.append(observation[None, ].copy())
+    
+    # Step
     next_state, reward, done, _ = env.step(action)
     
-    # if mujoco, decrease target rtg
+    # If mujoco, decrease target rtg
     if 'Fetch' in args.dataset:
         reward += 1
-        total_reward += reward
-        score = total_reward
+        rewards.append(reward)
+        dis_return, total_reward = discounted_return(np.array(rewards), 0.98)
+        distance = np.linalg.norm(state['achieved_goal'] - state['desired_goal'])
+        output = {'reward': reward, \
+                 'total_reward': total_reward, \
+                 'discounted_return': dis_return, \
+                 'distance': distance}
     elif 'maze2d' in args.dataset:
         total_reward += reward
         score = env.get_normalized_score(total_reward)
+        output = {'reward': reward, \
+                'total_reward': total_reward, \
+                'score': score}
     else:
         if args.decreasing_target:
-            target = dataset.normalizer.unnormalize(target, 'rtgs')
+            # target = dataset.normalizer.unnormalize(target, 'rtgs')
             target -= reward
-            target = dataset.normalizer(target, 'rtgs')
+            # target = dataset.normalizer(target, 'rtgs')
         total_reward += reward
         score = env.get_normalized_score(total_reward)
-        
+        output = {'reward': reward, \
+                'total_reward': total_reward, \
+                'score': score}
+    
+    output_str = ' | '.join([f'{k}: {v:.4f}' for k, v in output.items()])
     print(
-        f't: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | '
+        f't: {t} | {output_str} |'
         f'{action}'
     )
     
     if args.wandb:
-        wandb.log({
-            "reward": reward,
-            "total_reward": total_reward,
-            "score": score,
-        }, step = t)
+        wandb.log(output, step = t)
 
     if 'maze2d' in args.dataset:
         xy = next_state[:2]
         goal = env.unwrapped._target
         print(f'maze | pos: {xy} | goal: {goal}')
     elif 'Fetch' in args.dataset:
-        xyz = next_state['achieved_goal'][:3]
+        ag = next_state['achieved_goal'][:3]
         goal = next_state['desired_goal']
-        print(f'Fetch | pos: {xyz} | goal: {goal}')
+        print(f'Fetch | ag: {ag} | goal: {goal}')
     
     if done:
         break
     state = next_state
-    
+
+# Rendering
 if 'Fetch' in args.dataset:
     success = (reward == 1)
     print('success:', success)
+    renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout_sim)
+    # env.close()
+else:
+    renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
     
-# dc.render_samples(np.stack(rollout, axis=1), args.epi_seed)
+# renderer.render_rollout(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.mp4', rollout_sim)
 
 if args.wandb:
     wandb.finish()

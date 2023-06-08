@@ -178,7 +178,7 @@ def her_maze2d_set_terminals(env):
 
         dataset['timeouts'] = timeouts
         dataset['goals'] = her_goal
-        dataset['rewards'] = rewards
+        # dataset['rewards'] = rewards
         return dataset
 
     return _fn
@@ -201,7 +201,7 @@ def fetch_dataset(env):
         ## timeout at time t iff
         ##      at goal at time t and
         ##      not at goal at time t + 1
-        timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
+        # timeouts[:,:-1] = at_goal[:, :-1] * ~at_goal[:, 1:]
         # if env.reward_type == 'sparse':
         #     rewards = -(~at_goal).astype(np.float32)
         # elif env.reward_type == 'very_sparse':
@@ -209,25 +209,30 @@ def fetch_dataset(env):
         # else:
         #     rewards = -distances
         
-        timeouts[:, [0,-1]] = 1
-        path_lengths = []
-        for i in range(shape[0]):
-            path_lengths = np.concatenate([path_lengths, np.where(timeouts[i])[0][1:] - np.where(timeouts[i])[0][:-1]], axis=0)
-        timeouts[:, 0] = 0
+        timeouts[:, -1] = 1
+        # path_lengths = []
+        # for i in range(shape[0]):
+        #     path_lengths = np.concatenate([path_lengths, np.where(timeouts[i])[0][1:] - np.where(timeouts[i])[0][:-1]], axis=0)
         
         print(
-            f'[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | '
-            f'min length: {path_lengths.min()} | max length: {path_lengths.max()}'
+            f'[ utils/preprocessing ] Segmented {env.name} | {shape[0]} paths | '
+            f'min length: {shape[-1]} | max length: {shape[-1]}'
         )
 
         rtg = discount_cumsum(rewards)
         dataset['rtgs'] = rtg.reshape((np.prod(shape), -1))
-        dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
-        dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
+        if env.has_object:
+            extract = np.arange(11)
+            dataset['observations'] = dataset['o'][:,:-1, extract].reshape((np.prod(shape), -1))
+            dataset['next_observations'] = dataset['o'][:,1:, extract].reshape((np.prod(shape), -1))
+        else:
+            dataset['observations'] = dataset['o'][:,:-1].reshape((np.prod(shape), -1))
+            dataset['next_observations'] = dataset['o'][:,1:].reshape((np.prod(shape), -1))
         dataset['actions'] = dataset['u'].reshape((np.prod(shape), -1))
         dataset['rewards'] = rewards.reshape((np.prod(shape), -1))
         dataset['timeouts'] = timeouts.reshape((np.prod(shape), -1))
         dataset['goals'] = dataset['g'].reshape((np.prod(shape), -1))
+        dataset['achieved_goals'] = dataset['ag'][:,:-1].reshape((np.prod(shape), -1))
         dataset['terminals'] = np.zeros_like(dataset['timeouts']).astype(np.bool8)
         del dataset['o']
         del dataset['u']

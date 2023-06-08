@@ -7,11 +7,11 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', '2'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
-    # ('conditional', 'cond'),
+    ('beta_schedule', 'beta'),
 ]
 
 
@@ -30,9 +30,9 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16],
-        'n_diffusion_steps': [20],
-        'action_weight': [1],
+        'horizon': [4, 16, 32],
+        'n_diffusion_steps': [50],
+        'action_weight': [10],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
@@ -57,16 +57,16 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/'],
+        'prefix': ['dc/mixed'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0],
+        'seed': [0, 1],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e5],
+        'n_train_steps': [1e6],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-        'n_saves': [5],
+        'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -86,15 +86,15 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
-        'decreasing_target_rtg': [True],
+        # 'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
+        # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        # 'preprocess_fns': [['maze2d_set_terminals']],
+        'preprocess_fns': [['fetch_dataset']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 3, 4], 
-        'wandb': [False],
+        'epi_seed': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
+        'wandb': [True],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -103,26 +103,26 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['every'],
-        'increasing_condition': [False],
+        'control': ['fetch'],
+        'increasing_condition': [True],
         
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/test'],
+        'prefix': ['eval/mixed'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [16], #None,
-        'n_diffusion_steps': [20],
-        'seed': [0],
+        'horizon': [4, 16, 32], #None,
+        'n_diffusion_steps': [50],
+        'seed': [0, 1],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [499999],
+        'diffusion_loadpath': ['f:2dc/mixed_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],

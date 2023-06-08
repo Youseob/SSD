@@ -7,6 +7,21 @@ import einops
 from einops.layers.torch import Rearrange
 import utils
 
+def discounted_return(rewards, gamma, reward_offset=True):
+    T = len(rewards)
+    # if type(rewards[0]) == np.ndarray and len(rewards[0]):
+    #     rewards = np.array(rewards).T
+    # else:
+    #     rewards = np.array(rewards).reshape(1, L)
+
+    # if reward_offset:
+    #     rewards += 1   # positive offset
+
+    discount_weights = np.power(gamma, np.arange(T))
+    dis_return = (rewards * discount_weights).sum()
+    undis_return = rewards.sum()
+    return dis_return, undis_return
+
 class EMA():
     '''
         empirical moving average
