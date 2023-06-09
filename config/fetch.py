@@ -7,11 +7,11 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', '2'),
+    ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
-    ('beta_schedule', 'beta'),
+    # ('beta_schedule', 'beta'),
 ]
 
 
@@ -55,9 +55,9 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        'logbase': ['/ext2/sykim/DC/logs'],
-        # 'logbase': ['logs'],
-        'prefix': ['dc/mixed'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['logs'],
+        'prefix': ['dc/final'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -108,20 +108,20 @@ base = {
         
         ## serialization
         'loadbase': [None],
-        # 'logbase': ['./logs'],
-        'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/mixed'],
+        'logbase': ['./logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/fetch_final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [4, 16, 32], #None,
+        'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1],
+        'seed': [0, 1,2,3,4,5,6,7],
 
         ## loading
-        'diffusion_loadpath': ['f:2dc/mixed_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_loadpath': ['f:dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
         'diffusion_epoch': [99999],
 
         'verbose': [False],

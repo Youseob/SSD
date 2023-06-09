@@ -16,7 +16,7 @@ ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
 
 def fetch_sequence_dataset(env, preprocess_fn):
     name = str.split(env.name, '-')[0]
-    with open(f'/ext2/sykim/offline_gcrl_data/offline_data/mixed/{name}/buffer.pkl', 'rb') as f:
+    with open(f'../offline_gcrl_data/offline_data/mixed/{name}/buffer.pkl', 'rb') as f:
         dataset = pickle.load(f)
     dataset = preprocess_fn(dataset)
 
