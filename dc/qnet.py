@@ -456,7 +456,8 @@ class HindsightCritic(nn.Module):
             observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
             observation_cat = observation.repeat(2,1)
             action_cat = action.repeat(2,1)
-            goals_cat = torch.cat([batch.goals[:, -1], goal_rand], 0)
+            hindsight_goals = batch.goals[np.arange(batch_size), 1]
+            goals_cat = torch.cat([hindsight_goals, goal_rand], 0)
             goals_cat = self.unnorm(goals_cat, 'achieved_goals')
             
             # Hindsight values

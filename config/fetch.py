@@ -11,7 +11,7 @@ diffusion_args_to_watch = [
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
-    ('beta_schedule', 'beta'),
+    # ('beta_schedule', 'beta'),
 ]
 
 
@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [4, 16, 32],
+        'horizon': [8, 16, 32],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,11 +57,11 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/mixed'],
+        'prefix': ['dc/new'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1],
+        'seed': [0],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -104,25 +104,25 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['fetch'],
-        'increasing_condition': [True],
+        'increasing_condition': [False],
         
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/mixed'],
+        'prefix': ['eval/fetch_final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [4, 16, 32], #None,
+        'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1],
+        'seed': [0],
 
         ## loading
-        'diffusion_loadpath': ['f:2dc/mixed_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [99999],
+        'diffusion_loadpath': ['f:2dc/new_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [199999],
 
         'verbose': [False],
         'suffix': ['0'],
