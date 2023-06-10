@@ -173,39 +173,39 @@ class DiffuserCritic(object):
                 action = batch.trajectories[:, :, self.observation_dim:]                
                 
                 # hindsight experience goal/reward
-                trajectories = batch.trajectories
-                if 'maze' in self.env_name:
+                # trajectories = batch.trajectories
+                if not self.has_object:
                     # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
-                    goal = trajectories[:, -1, :self.goal_dim]
-                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
-                    current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size,1)) 
-                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                            self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                    values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
-                elif 'Fetch' in self.env_name:
-                    goal = batch.goals[:, -1].clone()
-                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                    ag = batch.trajectories[:, -1, :self.goal_dim]
+                    goal_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
                     current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
                     values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
                 else:
-                    goal = batch.rtgs[:, -1].clone()
-                    goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                    ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim]
+                    goal_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
+                    current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
-                                            goal_rpt)
+                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
+                    values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
+                # else:
+                #     goal = batch.rtgs[:, -1].clone()
+                #     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
+                #     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                #                             self.critic.unnorm(action, 'actions'), 
+                #                             goal_rpt)
 
                 current_idx = current_t.reshape(self.batch_size, 1) + einops.repeat(np.arange(self.horizon), 'h -> b h', b=self.batch_size)
                 
-                trajectories = einops.rearrange(trajectories, 'b h d -> b d h')
+                trajectories = einops.rearrange(batch.trajectories, 'b h d -> b d h')
                 trajectories_padded = F.pad(trajectories, (0, self.horizon), mode='replicate')
                 trajectories_padded = einops.rearrange(trajectories_padded, 'b d h -> b h d')
                 trajectories_padded = trajectories_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), current_idx]
                 
-                loss_d = self.diffuser.loss(trajectories_padded, values.detach(), goal, has_object=self.has_object)
+                loss_d = self.diffuser.loss(trajectories_padded, values.detach(), ag, has_object=self.has_object)
                 loss_d = loss_d / self.gradient_accumulate_every
                 loss_d.backward()
             self.diffuser_optimizer.step()
