@@ -36,7 +36,7 @@ args = Parser().parse_args(iterparser)
 ##############################################################################
 
 env = datasets.load_environment(args.dataset)
-env.seed(args.epi_seed)
+# env.seed(args.epi_seed)
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -121,7 +121,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"new_{args.dataset}"
+    wandb.run.name = f"rand_{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
