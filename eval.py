@@ -159,7 +159,10 @@ for t in range(env.max_episode_steps):
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
     elif 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
-        observation = state['observation'][np.arange(11)]
+        if env.has_object:
+            observation = state['observation'][np.arange(11)]
+        else:
+            observation = state['observation']
 
     if args.increasing_condition:
         condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))

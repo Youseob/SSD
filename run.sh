@@ -6,12 +6,15 @@ for _ in {0..9}
 do
 for seed in {0..8}
 do
-    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset FetchPickAndPlace-v1 \
+for seed in {4..7}
+do
+    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset FetchReach-v1 \
                                                            --control fetch \
                                                            --increasing_condition False \
                                                            --horizon 16 \
                                                            --seed $seed \
                                                             --diffusion_epoch $diffusion_epoch
+done
 done
 done
 done

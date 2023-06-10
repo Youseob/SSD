@@ -51,7 +51,7 @@ class GoalPositionControl:
             # action = self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim] \
             #         + self.next_waypoint_list[0, self.goal_dim:] - state[self.goal_dim:]
             action = self.p_gain * (self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim]) \
-                    + self.d_gain * state[self.goal_dim:]
+                    + self.d_gain * state[self.goal_dim:2*self.goal_dim]
             self.next_waypoint_list = np.delete(self.next_waypoint_list, 0, 0)
         
         return action
