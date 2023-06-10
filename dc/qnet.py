@@ -422,22 +422,22 @@ class HindsightCritic(nn.Module):
         # hindsight goals and values
         if self.has_object:
             # Hindsight goals
-            ag = batch.trajectories[:, :, self.goal_dim:2*self.goal_dim]
+            ag = self.unnorm(batch.trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
+            dg = self.unnorm(goal_rand, 'goals')
             observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
             action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
             observation_cat = observation.repeat(2,1)
             action_cat = action.repeat(2,1)
             future_t = np.random.randint(1, horizon, size=(batch_size,))
             hindsight_goals = ag[np.arange(batch_size), future_t]
-            goals_cat = torch.cat([hindsight_goals, goal_rand], 0)
-            goals_cat = self.unnorm(goals_cat, 'goals')
+            goals_cat = torch.cat([hindsight_goals, dg], 0)
             
             # Hindsight values
             discount = self.gamma ** (future_t - 1)
             values = to_torch((discount * 1).reshape(batch_size, 1))
             next_observation = self.unnorm(trajectories[:, 1, :self.observation_dim], 'observations')
             next_action = self.unnorm(trajectories[:, 1, self.observation_dim:], 'actions')
-            next_q1, next_q2 = self.forward_target(next_observation, next_action, goal_rand)
+            next_q1, next_q2 = self.forward_target(next_observation, next_action, self.unnorm(goal_rand, 'goals'))
             td_target1 = torch.cat([values, self.gamma * next_q1], 0)
             td_target2 = torch.cat([values, self.gamma * next_q2], 0)
             
@@ -454,17 +454,17 @@ class HindsightCritic(nn.Module):
             # next_q1, next_q2 = self.forward_target(nextnext_observation, nextnext_action, goal_rand)
         else:
             # Hindsight goals
-            ag = batch.trajectories[:, :, :self.goal_dim]
+            ag = self.unnorm(batch.trajectories[:, :, :self.goal_dim], 'achieved_goals')
+            dg = self.unnorm(goal_rand, 'goals')
             observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
             observation_cat = observation.repeat(2,1)
             action_cat = action.repeat(2,1)
             hindsight_goals = ag[np.arange(batch_size), 1]
-            goals_cat = torch.cat([hindsight_goals, goal_rand], 0)
-            goals_cat = self.unnorm(goals_cat, 'goals')
+            goals_cat = torch.cat([hindsight_goals, dg], 0)
             
             # Hindsight values
             values = torch.ones((batch_size, 1)).to('cuda')
-            next_q1, next_q2 = self.forward_target(next_observation, next_action, goal_rand)
+            next_q1, next_q2 = self.forward_target(next_observation, next_action, self.unnorm(goal_rand, 'goals'))
             td_target1 = torch.cat([values, self.gamma * next_q1], 0)
             td_target2 = torch.cat([values, self.gamma * next_q2], 0)
 
@@ -481,7 +481,7 @@ class HindsightCritic(nn.Module):
         num_random_actions = 10
         random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
         obs_rpt = observation.repeat_interleave(num_random_actions, axis=0)
-        goals_rrpt = hindsight_goals.repeat_interleave(num_random_actions, axis=0)
+        goals_rrpt = dg.repeat_interleave(num_random_actions, axis=0)
         rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goals_rrpt)        
         rand_q1 = rand_q1.reshape(batch_size, -1)
         rand_q2 = rand_q2.reshape(batch_size, -1)
@@ -589,10 +589,10 @@ class HindsightCritic(nn.Module):
         return to_torch(self.normalizer(to_np(x), key))
     
     def unnorm_transition(self, trajectories, has_object):
-        observation = self.unnorm(trajectories[:, -2, :self.observation_dim], 'observations')
-        action = self.unnorm(trajectories[:, -2, self.observation_dim:], 'actions')
-        next_observation = self.unnorm(trajectories[:, -1, :self.observation_dim], 'observations')
-        next_action = self.unnorm(trajectories[:, -1, self.observation_dim:], 'actions')
+        observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
+        action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
+        next_observation = self.unnorm(trajectories[:, 1, :self.observation_dim], 'observations')
+        next_action = self.unnorm(trajectories[:, 1, self.observation_dim:], 'actions')
         if has_object:
             nextnext_observation = self.last_obs(next_observation)
         else:
