@@ -121,7 +121,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"p_gain_{args.dataset}"
+    wandb.run.name = f"new_{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################

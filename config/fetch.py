@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [4, 16, 32],
+        'horizon': [8, 16, 32],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,11 +57,11 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc/final'],
+        'prefix': ['dc/new2'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1],
+        'seed': [0],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -104,7 +104,7 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['fetch'],
-        'increasing_condition': [True],
+        'increasing_condition': [False],
         
         ## serialization
         'loadbase': [None],
