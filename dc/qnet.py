@@ -422,14 +422,15 @@ class HindsightCritic(nn.Module):
         # hindsight goals and values
         if self.has_object:
             # Hindsight goals
+            ag = batch.trajectories[:, :, self.goal_dim:2*self.goal_dim]
             observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
             action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
             observation_cat = observation.repeat(2,1)
             action_cat = action.repeat(2,1)
             future_t = np.random.randint(1, horizon, size=(batch_size,))
-            hindsight_goals = batch.goals[np.arange(batch_size), future_t]
+            hindsight_goals = ag[np.arange(batch_size), future_t]
             goals_cat = torch.cat([hindsight_goals, goal_rand], 0)
-            goals_cat = self.unnorm(goals_cat, 'achieved_goals')
+            goals_cat = self.unnorm(goals_cat, 'goals')
             
             # Hindsight values
             discount = self.gamma ** (future_t - 1)
@@ -453,12 +454,13 @@ class HindsightCritic(nn.Module):
             # next_q1, next_q2 = self.forward_target(nextnext_observation, nextnext_action, goal_rand)
         else:
             # Hindsight goals
+            ag = batch.trajectories[:, :, :self.goal_dim]
             observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
             observation_cat = observation.repeat(2,1)
             action_cat = action.repeat(2,1)
-            hindsight_goals = batch.goals[np.arange(batch_size), 1]
+            hindsight_goals = ag[np.arange(batch_size), 1]
             goals_cat = torch.cat([hindsight_goals, goal_rand], 0)
-            goals_cat = self.unnorm(goals_cat, 'achieved_goals')
+            goals_cat = self.unnorm(goals_cat, 'goals')
             
             # Hindsight values
             values = torch.ones((batch_size, 1)).to('cuda')
@@ -503,7 +505,8 @@ class HindsightCritic(nn.Module):
         batch_size, horizon, _ = trajectories.shape
         
         # Hindsight goals
-        if 'Fetch' in self.env_name and self.has_object:
+        if self.has_object:
+            ag = batch.trajectories[:, :, self.goal_dim:2*self.goal_dim]
             her_indexes, t_indexes = self.make_indices(batch_size, horizon)
             
             observation = self.unnorm(trajectories[:, :, :self.observation_dim], 'observations')
@@ -514,16 +517,17 @@ class HindsightCritic(nn.Module):
             
             last_action = ema_model(next_observation[:, -1], 
                                     torch.ones_like(batch.rtgs), 
-                                    batch.goals[:, -1], self.has_object)[:, 0, self.observation_dim:]
+                                    ag[:, -1], self.has_object)[:, 0, self.observation_dim:]
             next_action = torch.cat([self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions'),
                                     last_action[:,None]], 1)
             
             # goals = to_np(batch.goals.clone())
             # np.random.shuffle(goals)
             goals = goal_rand[:, 0]
-            goals[her_indexes] = batch.goals[her_indexes, t_indexes].squeeze()
+            goals[her_indexes] = ag[her_indexes, t_indexes].squeeze()
             goals = self.unnorm(goals, 'achieved_goals')
         else:
+            ag = batch.trajectories[:, :, :self.goal_dim]
             her_indexes, t_indexes = self.make_indices(batch_size, horizon-1)
             
             observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
@@ -535,7 +539,7 @@ class HindsightCritic(nn.Module):
             # goals = to_np(batch.goals.clone())
             # np.random.shuffle(goals)
             goals = goal_rand[:, 0]
-            goals[her_indexes] = batch.goals[her_indexes, t_indexes].squeeze()
+            goals[her_indexes] = ag[her_indexes, t_indexes].squeeze()
             goals = self.unnorm(goals, 'achieved_goals')
          
         

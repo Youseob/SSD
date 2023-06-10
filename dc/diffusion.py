@@ -178,15 +178,15 @@ class GaussianDiffusion(nn.Module):
         x = 0.5 * torch.randn(shape, device=self.device)
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
-        if has_object:
-            # Hindsight goal 
-            x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-            x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-            # Hindsight gripper
-            x[:, -1, :self.goal_dim] = goal.clone()
-            x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
-        else:
-            x[:, -1, :self.goal_dim] = goal.clone()
+        # if has_object:
+        #     # Hindsight goal 
+        #     x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+        #     x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+        #     # Hindsight gripper
+        #     x[:, -1, :self.goal_dim] = goal.clone()
+        #     x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+        # else:
+        #     x[:, -1, :self.goal_dim] = goal.clone()
         
         if return_diffusion: diffusion = [x]
         
@@ -196,15 +196,15 @@ class GaussianDiffusion(nn.Module):
             x = self.p_sample(x, timesteps, cond, goal)
             # apply conditioning
             x[:, 0, :self.observation_dim] = state.clone()
-            if has_object:
-                # Hindsight goal 
-                x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-                x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-                # Hindsight gripper
-                x[:, -1, :self.goal_dim] = goal.clone()
-                x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
-            else:
-                x[:, -1, :self.goal_dim] = goal.clone()
+            # if has_object:
+            #     # Hindsight goal 
+            #     x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+            #     x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+            #     # Hindsight gripper
+            #     x[:, -1, :self.goal_dim] = goal.clone()
+            #     x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+            # else:
+            #     x[:, -1, :self.goal_dim] = goal.clone()
                         
             progress.update({'t': i})
             if return_diffusion: diffusion.append(x)
@@ -240,15 +240,15 @@ class GaussianDiffusion(nn.Module):
         x_noisy = self.q_sample(x_start, t, noise)
         # apply conditioning
         x_noisy[:, 0, :self.observation_dim] = state.clone()
-        if has_object:
-            # Hindsight goal 
-            x_noisy[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-            x_noisy[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-            # Hindsight gripper
-            x_noisy[:, -1, :self.goal_dim] = goal.clone()
-            x_noisy[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_noisy[:, -1, :self.goal_dim].clone()
-        else:
-            x_noisy[:, -1, :self.goal_dim] = goal.clone()
+        # if has_object:
+        #     # Hindsight goal 
+        #     x_noisy[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+        #     x_noisy[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+        #     # Hindsight gripper
+        #     x_noisy[:, -1, :self.goal_dim] = goal.clone()
+        #     x_noisy[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_noisy[:, -1, :self.goal_dim].clone()
+        # else:
+        #     x_noisy[:, -1, :self.goal_dim] = goal.clone()
         
         if self.model.calc_energy:
             assert self.predict_epsilon
@@ -264,15 +264,15 @@ class GaussianDiffusion(nn.Module):
         if not self.predict_epsilon:
             # apply conditioning
             x_recon[:, 0, :self.observation_dim] = state.clone()
-            if has_object:
-                # Hindsight goal 
-                x_recon[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-                x_recon[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-                # Hindsight gripper
-                x_recon[:, -1, :self.goal_dim] = goal.clone()
-                x_recon[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_recon[:, -1, :self.goal_dim].clone()
-            else:
-                x_recon[:, -1, :self.goal_dim] = goal.clone()
+            # if has_object:
+            #     # Hindsight goal 
+            #     x_recon[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+            #     x_recon[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+            #     # Hindsight gripper
+            #     x_recon[:, -1, :self.goal_dim] = goal.clone()
+            #     x_recon[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_recon[:, -1, :self.goal_dim].clone()
+            # else:
+            #     x_recon[:, -1, :self.goal_dim] = goal.clone()
         
         assert noise.shape == x_recon.shape
         
