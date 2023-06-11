@@ -4,7 +4,7 @@ universe=Vanilla
 Executable=/home/sykim/DC/eval.sh
 Arguments=$(cluster) $(process)
 getenv=True
-
+priority=35
 
 #requirements=(Machine=="c01"||Machine=="c02"||Machine=="c03"||Machine=="c04"||Machine=="c05"||Machine=="c07"||Machine=="c09"||Machine=="c10"||Machine=="c11"||Machine=="c12"||Machine=="c13"||Machine=="c14"||Machine=="c15")
 #requirements=(Machine=="c16"||Machine=="c17"||Machine=="c18"||Machine=="c20"||Machine=="c21"||Machine=="c22"||Machine=="c23"||Machine=="c24"||Machine=="c25"||Machine=="c26")

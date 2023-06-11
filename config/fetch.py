@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', ''),
+    ('prefix', 'v2_'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
@@ -74,7 +74,7 @@ base = {
         'ema_decay': [0.995],
         # 'save_freq': [5000],
         'sample_freq': [5000],
-        'log_freq': [100],
+        'log_freq': [1000],
         'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
@@ -121,8 +121,8 @@ base = {
         'seed': [0, 1,2,3],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [149999],
+        'diffusion_loadpath': ['f:v2_dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [99999],
 
         'verbose': [False],
         'suffix': ['0'],
