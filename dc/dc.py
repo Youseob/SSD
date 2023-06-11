@@ -261,10 +261,10 @@ class DiffuserCritic(object):
                         "Q": q.mean(),
                         "qloss1": qloss1,
                         "qloss2": qloss2,
-                        "succcess_rate": succ_rates.mean(),
-                        "return": undisc_returns.mean(),
-                        "discounted_returns": disc_returns.mean(),
-                        "distance": distances.mean(),
+                        "succcess_rate": np.array(succ_rates).mean(),
+                        "return": np.array(undisc_returns).mean(),
+                        "discounted_returns": np.array(disc_returns).mean(),
+                        "distance": np.array(distances).mean(),
                     }, step = self.step)
                     
             self.step += 1
