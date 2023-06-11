@@ -10,6 +10,8 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
+from utils.eval_module import main
+from dc.policy import FetchControl
 from .temporal import TemporalUnetConditional
 from .model import MLP
 from .diffusion import GaussianDiffusion
@@ -133,6 +135,7 @@ class DiffuserCritic(object):
         self.ema.update_model_average(self.ema_model, self.diffuser)
     
     def train(self, n_train_steps):
+        env = self.dataset.env
         best_loss_q = 1e0
         for step in range(int(n_train_steps)):
             self.model.train()
@@ -182,7 +185,7 @@ class DiffuserCritic(object):
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                    values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
+                    values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
                 else:
                     ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim]
                     goal_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
@@ -190,7 +193,7 @@ class DiffuserCritic(object):
                     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                             self.critic.unnorm(action, 'actions'), 
                                             self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                    values = einops.repeat(values, 'b d ->b r d', r=self.horizon)
+                    values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
                 # else:
                 #     goal = batch.rtgs[:, -1].clone()
                 #     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
@@ -243,6 +246,12 @@ class DiffuserCritic(object):
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
+                if self.step < 100000:
+                    succ_rates, undisc_returns, disc_returns, distances = [], [], [], []
+                else:
+                    policy = FetchControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                    succ_rates, undisc_returns, disc_returns, distances = main(env, 10, policy, self.horizon)
+                
                 print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
                 if self.wandb:
                     wandb.log({
@@ -252,6 +261,10 @@ class DiffuserCritic(object):
                         "Q": q.mean(),
                         "qloss1": qloss1,
                         "qloss2": qloss2,
+                        "succcess_rate": succ_rates.mean(),
+                        "return": undisc_returns.mean(),
+                        "discounted_returns": disc_returns.mean(),
+                        "distance": distances.mean(),
                     }, step = self.step)
                     
             self.step += 1

@@ -10,7 +10,7 @@ from dc.dc import DiffuserCritic
 from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchReach-v1'
+    dataset: str = 'FetchPickAndPlace-v1'
     config: str = 'config.fetch'
     experiment: str = 'diffusion'
 

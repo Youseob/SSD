@@ -55,13 +55,13 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/final'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0],
+        'seed': [0,1,2,3],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [10000],
@@ -74,7 +74,7 @@ base = {
         'ema_decay': [0.995],
         # 'save_freq': [5000],
         'sample_freq': [5000],
-        'log_freq': [100],
+        'log_freq': [1000],
         'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
@@ -108,8 +108,8 @@ base = {
         
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
         'prefix': ['eval/fetch_final2'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
@@ -118,10 +118,10 @@ base = {
         ## diffusion model
         'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1,2,3,4,5,6,7],
+        'seed': [0, 1,2,3],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_loadpath': ['f:v2_dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
         'diffusion_epoch': [99999],
 
         'verbose': [False],

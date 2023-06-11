@@ -76,11 +76,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [100],
-<<<<<<< HEAD
-        'n_saves': [10],
-=======
         'n_saves': [1],
->>>>>>> 755a895724d97c83b4d53399d0112af45f2a8f2d
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -172,31 +168,31 @@ base = {
 
 maze2d_umaze_v1 = {
     'diffusion': {
-        'horizon': [32],
+        'horizon': [128],
         'n_diffusion_steps': [64],
     },
     'evaluate': {
-        'horizon': [32],
+        'horizon': [128],
         'n_diffusion_steps': [64],
     },
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [256],
         'n_diffusion_steps': [64],
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [256],
         'n_diffusion_steps': [64],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [384],
         'n_diffusion_steps': [256],
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [384],
         'n_diffusion_steps': [256],
     },
 }

@@ -122,7 +122,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"new_{args.dataset}"
+    wandb.run.name = f"rand_{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
