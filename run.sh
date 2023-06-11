@@ -1,20 +1,17 @@
 #!/bin/bash
 cd ~/DC
-for diffusion_epoch in 399999 499999
+for diffusion_epoch in 249999
 do
 for _ in {0..9}
 do
-for seed in {0..8}
+for seed in {0..3}
 do
-for seed in {4..7}
-do
-    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset FetchReach-v1 \
+    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset FetchPickAndPlace-v1 \
                                                            --control fetch \
-                                                           --increasing_condition False \
-                                                           --horizon 16 \
+                                                           --increasing_condition True \
+                                                           --horizon 32 \
                                                            --seed $seed \
                                                             --diffusion_epoch $diffusion_epoch
-done
 done
 done
 done

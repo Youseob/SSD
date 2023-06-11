@@ -57,7 +57,7 @@ base = {
         ## serialization
         'logbase': ['/ext2/sykim/DC/logs'],
         # 'logbase': ['logs'],
-        'prefix': ['dc/new'],
+        'prefix': ['dc/final'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -108,9 +108,9 @@ base = {
         
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/fetch_final'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/fetch_final2'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -118,11 +118,11 @@ base = {
         ## diffusion model
         'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1,2,3,4,5,6,7],
+        'seed': [0, 1,2,3],
 
         ## loading
-        'diffusion_loadpath': ['f:2dc/new_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [199999],
+        'diffusion_loadpath': ['f:dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [149999],
 
         'verbose': [False],
         'suffix': ['0'],
