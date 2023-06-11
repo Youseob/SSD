@@ -110,7 +110,7 @@ base = {
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/fetch_final'],
+        'prefix': ['eval/fetch_final2'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
