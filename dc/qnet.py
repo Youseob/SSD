@@ -416,13 +416,13 @@ class HindsightCritic(nn.Module):
         soft_copy_nn_module(self.qf2, self.qf2_target)
     
     def loss(self, batch, goal_rand, ema_model):
-        trajectories = batch.trajectories
+        trajectories = batch.trajectories.clone()
         batch_size, horizon, _ = trajectories.shape
         
         # hindsight goals and values
         if self.has_object:
             # Hindsight goals
-            ag = self.unnorm(batch.trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
+            ag = self.unnorm(trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
             dg = self.unnorm(goal_rand, 'goals')
             observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
             action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
@@ -454,7 +454,7 @@ class HindsightCritic(nn.Module):
             # next_q1, next_q2 = self.forward_target(nextnext_observation, nextnext_action, goal_rand)
         else:
             # Hindsight goals
-            ag = self.unnorm(batch.trajectories[:, :, :self.goal_dim], 'achieved_goals')
+            ag = self.unnorm(trajectories[:, :, :self.goal_dim], 'achieved_goals')
             dg = self.unnorm(goal_rand, 'goals')
             observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
             observation_cat = observation.repeat(2,1)
@@ -481,7 +481,7 @@ class HindsightCritic(nn.Module):
         num_random_actions = 10
         random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
         obs_rpt = observation.repeat_interleave(num_random_actions, axis=0)
-        goals_rrpt = dg.repeat_interleave(num_random_actions, axis=0)
+        goals_rrpt = hindsight_goals.repeat_interleave(num_random_actions, axis=0)
         rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goals_rrpt)        
         rand_q1 = rand_q1.reshape(batch_size, -1)
         rand_q2 = rand_q2.reshape(batch_size, -1)
