@@ -36,6 +36,7 @@ args = Parser().parse_args(iterparser)
 ##############################################################################
 
 env = datasets.load_environment(args.dataset)
+# env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 # env.seed(args.epi_seed)
 horizon = args.horizon
 
@@ -126,7 +127,6 @@ if args.wandb:
 ##############################################################################
 ############################## Start iteration ###############################
 ##############################################################################
-# env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 state = env.reset()
 
 ## Set target and condition
