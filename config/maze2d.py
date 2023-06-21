@@ -110,8 +110,8 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        # 'logbase': ['./logs'],
-        'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['./logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
         'prefix': ['eval/dd'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
@@ -125,7 +125,7 @@ base = {
         # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:DDdd/H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr0.25'],
         'diffusion_epoch': [999999],
 
         'verbose': [False],

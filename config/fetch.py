@@ -55,8 +55,8 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        'logbase': ['/ext2/sykim/DC/logs'],
-        # 'logbase': ['logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['logs'],
         'prefix': ['dc/final'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [10000],
         'loss_type': ['l2'],
-        'n_train_steps': [5e5],
+        'n_train_steps': [2e6],
         'warmup_steps': [4e5],
         'batch_size': [128],
         'lr': [2e-4],
@@ -74,7 +74,7 @@ base = {
         'ema_decay': [0.995],
         # 'save_freq': [5000],
         'sample_freq': [5000],
-        'log_freq': [1000],
+        'log_freq': [5000],
         'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
