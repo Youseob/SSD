@@ -19,8 +19,8 @@ from utils.helpers import discounted_return
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchPickAndPlace-v1'
-    config: str = 'config.fetch'
+    dataset: str = 'maze2d-large-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -37,7 +37,7 @@ args = Parser().parse_args(iterparser)
 
 env = datasets.load_environment(args.dataset)
 # env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
-# env.seed(args.epi_seed)
+env.seed(args.epi_seed)
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -156,6 +156,7 @@ at_goal = False
 for t in range(env.max_episode_steps):
     # samples = dc.diffuser(to_torch(state).unsqueeze(0), condition[t].reshape(1,1,1).repeat(1,args.horizon,1), to_torch(target).reshape(1,1))
     if 'maze2d' in args.dataset:
+        observation = state
         at_goal = np.linalg.norm(state[:goal_dim] - target) <= 0.5
     elif 'Fetch' in args.dataset:
         at_goal = np.linalg.norm(state['achieved_goal'] - state['desired_goal']) <= 0.05
@@ -173,7 +174,7 @@ for t in range(env.max_episode_steps):
     if 'Fetch' in args.dataset:
         rollout_sim.append(copy.deepcopy(env.sim.get_state()))
     else:
-        rollout.append(observation[None, ].copy())
+        rollout.append(state.copy())
     
     # Step
     next_state, reward, done, _ = env.step(action)
@@ -226,6 +227,9 @@ for t in range(env.max_episode_steps):
     if done:
         break
     state = next_state
+    if 'maze2d' in args.dataset:
+        if t % args.vis_freq == 0:
+            renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', np.array(rollout)[None], ncol=1)
 
 # Rendering
 if 'Fetch' in args.dataset:
@@ -233,8 +237,8 @@ if 'Fetch' in args.dataset:
     print('success:', success)
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout_sim)
     # env.close()
-else:
-    renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
+# else:
+    # renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
     
 # renderer.render_rollout(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.mp4', rollout_sim)
 

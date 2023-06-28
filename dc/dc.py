@@ -246,7 +246,7 @@ class DiffuserCritic(object):
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
-                if self.step < 100000:
+                if self.step < 0:
                     succ_rates, undisc_returns, disc_returns, distances = [], [], [], []
                 else:
                     policy = FetchControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
