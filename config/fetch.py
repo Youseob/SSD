@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [8, 16, 20],
+        'horizon': [16, 20],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -55,9 +55,9 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
-        'prefix': ['dc/final'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
+        'prefix': ['dc/transformer1'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
