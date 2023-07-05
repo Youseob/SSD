@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16, 20],
+        'horizon': [8, 16, 20],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -64,11 +64,11 @@ base = {
         'seed': [0,1,2,3],
         'maxq': [False],
         'alpha': [1],
-        'n_steps_per_epoch': [10000],
+        'n_steps_per_epoch': [1000],
         'loss_type': ['l2'],
         'n_train_steps': [2e6],
         'warmup_steps': [4e5],
-        'batch_size': [128],
+        'batch_size': [256],
         'lr': [2e-4],
         'gradient_accumulate_every': [2],
         'ema_decay': [0.995],

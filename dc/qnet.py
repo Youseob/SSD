@@ -419,9 +419,19 @@ class HindsightCritic(nn.Module):
         trajectories = batch.trajectories.clone()
         batch_size, horizon, _ = trajectories.shape
         
-        # hindsight goals and values
+        ## Hindsight goals and values
         if self.has_object:
-            # Hindsight goals
+            '''
+                Concatenate hindsight-relabeled value and unrelabeled value.
+                All the (values_cat) are of batch size 2b, where first b is 
+                for relabeled value and the other b is unrelabeled value.
+                
+                future_t: k.
+                values: Hindsight relabeled value. gamma ** (k-1)
+                next_q: Q(s',a')
+                td_target: cat([values, gamma * next_q], 0)
+            '''
+            
             ag = self.unnorm(trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
             dg = self.unnorm(goal_rand, 'goals')
             observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
@@ -432,12 +442,12 @@ class HindsightCritic(nn.Module):
             hindsight_goals = ag[np.arange(batch_size), future_t]
             goals_cat = torch.cat([hindsight_goals, dg], 0)
             
-            # Hindsight values
             discount = self.gamma ** (future_t - 1)
             values = to_torch((discount * 1).reshape(batch_size, 1))
             next_observation = self.unnorm(trajectories[:, 1, :self.observation_dim], 'observations')
             next_action = self.unnorm(trajectories[:, 1, self.observation_dim:], 'actions')
             next_q1, next_q2 = self.forward_target(next_observation, next_action, self.unnorm(goal_rand, 'goals'))
+            
             td_target1 = torch.cat([values, self.gamma * next_q1], 0)
             td_target2 = torch.cat([values, self.gamma * next_q2], 0)
             
@@ -453,7 +463,16 @@ class HindsightCritic(nn.Module):
             # values = torch.ones((batch_size, 1)).to('cuda')
             # next_q1, next_q2 = self.forward_target(nextnext_observation, nextnext_action, goal_rand)
         else:
-            # Hindsight goals
+            '''
+                Concatenate hindsight-relabeled value and unrelabeled value.
+                All the (values_cat) are of batch size 2b, where first b is 
+                for relabeled value and the other b is unrelabeled value.
+                
+                future_t: k=1.
+                values: Hindsight relabeled value. 1.
+                next_q: Q(s',a')
+                td_target: cat([values, gamma * next_q], 0)
+            '''
             ag = self.unnorm(trajectories[:, :, :self.goal_dim], 'achieved_goals')
             dg = self.unnorm(goal_rand, 'goals')
             observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
@@ -462,7 +481,6 @@ class HindsightCritic(nn.Module):
             hindsight_goals = ag[np.arange(batch_size), 1]
             goals_cat = torch.cat([hindsight_goals, dg], 0)
             
-            # Hindsight values
             values = torch.ones((batch_size, 1)).to('cuda')
             next_q1, next_q2 = self.forward_target(next_observation, next_action, self.unnorm(goal_rand, 'goals'))
             td_target1 = torch.cat([values, self.gamma * next_q1], 0)
@@ -475,11 +493,9 @@ class HindsightCritic(nn.Module):
         # x = torch.cat([observation_cat, goals], -1)
         targ_q1, targ_q2 = self.forward_target(observation_cat, action_cat, goals_cat)
         targ_q = torch.min(targ_q1, targ_q2)
-        # negative_action = self.actor(x)
-        # min_q1_loss, min_q2_loss = self.forward(observation_cat, negative_action.detach(), goals)
         # sample negative action
         num_random_actions = 10
-        random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
+        random_actions = torch.FloatTensor(batch_size * num_random_actions, self.action_dim).uniform_(-1, 1).to(action.device)
         obs_rpt = observation.repeat_interleave(num_random_actions, axis=0)
         goals_rrpt = hindsight_goals.repeat_interleave(num_random_actions, axis=0)
         rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goals_rrpt)        
@@ -487,10 +503,7 @@ class HindsightCritic(nn.Module):
         rand_q2 = rand_q2.reshape(batch_size, -1)
         i1 = torch.distributions.Categorical(logits=rand_q1.detach()).sample()
         i2 = torch.distributions.Categorical(logits=rand_q2.detach()).sample()
-        # x = torch.cat([observation, goals_rpt], -1)
-        # negative_action = self.actor(x)
         
-        # min_q1_loss, min_q2_loss = self.forward(observation, negative_action.detach(), goals_rpt)
         min_q1_loss = rand_q1[torch.arange(batch_size), i1].mean()
         min_q2_loss = rand_q2[torch.arange(batch_size), i2].mean()
         
