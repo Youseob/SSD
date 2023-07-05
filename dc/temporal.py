@@ -7,6 +7,8 @@ import math
 import pdb
 from torch.distributions import Bernoulli
 
+from .encoder import TransformerEmbedder
+
 #-----------------------------------------------------------------------------#
 #---------------------------------- modules ----------------------------------#
 #-----------------------------------------------------------------------------#
@@ -26,17 +28,21 @@ class SinusoidalPosEmb(nn.Module):
         return emb
 
 class Downsample1d(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, dim_out=None):
         super().__init__()
-        self.conv = nn.Conv1d(dim, dim, 3, 2, 1)
-
+        if dim_out is None:
+            dim_out = dim
+        self.conv = nn.Conv1d(dim, dim_out, 3, 2, 1)
+        
     def forward(self, x):
         return self.conv(x)
 
 class Upsample1d(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, dim_out=None):
         super().__init__()
-        self.conv = nn.ConvTranspose1d(dim, dim, 4, 2, 1)
+        if dim_out is None:
+            dim_out = dim
+        self.conv = nn.ConvTranspose1d(dim, dim_out, 4, 2, 1)
 
     def forward(self, x):
         return self.conv(x)
@@ -302,6 +308,192 @@ class TemporalUnetConditional(nn.Module):
             x += self.condition_mlp(cond)
             x += self.goal_mlp(einops.repeat(goal, 'b d -> b h d', h=self.horizon))
             return x
+
+    def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):
+        '''
+            x : [ batch x horizon x transition ]
+            returns : [batch x horizon]
+        '''
+        x = einops.rearrange(x, 'b h t -> b t h')
+
+        t = self.time_mlp(time)
+
+        if self.conditional:
+            assert y is not None
+            y_embed = self.condition_mlp(y)
+            if use_dropout:
+                mask = self.mask_dist.sample(sample_shape=(y_embed.size(0), 1)).to(y_embed.device)
+                y_embed = mask*y_embed
+            if force_dropout:
+                y_embed = 0*y_embed
+            t = torch.cat([t, y_embed], dim=-1)
+
+        h = []
+
+        for resnet, resnet2, downsample in self.downs:
+            x = resnet(x, t)
+            x = resnet2(x, t)
+            h.append(x)
+            x = downsample(x)
+
+        x = self.mid_block1(x, t)
+        x = self.mid_block2(x, t)
+
+        for resnet, resnet2, upsample in self.ups:
+            x = torch.cat((x, h.pop()), dim=1)
+            x = resnet(x, t)
+            x = resnet2(x, t)
+            x = upsample(x)
+
+        x = self.final_conv(x)
+
+        x = einops.rearrange(x, 'b t h -> b h t')
+
+        return x
+
+class TemporalUnetTransformer(nn.Module):
+
+    def __init__(
+        self,
+        horizon,
+        transition_dim,
+        cond_dim,
+        dim=128,
+        dim_mults=(1, 2, 4, 8),
+        conditional=False,
+        condition_dropout=0.1,
+        calc_energy=False,
+        kernel_size=5,
+    ):
+        super().__init__()
+
+        dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
+        in_out = list(zip(dims[:-1], dims[1:]))
+        print(f'[ models/temporal ] Channel dimensions: {in_out}')
+        self.horizon = horizon
+
+        if calc_energy:
+            mish = False
+            act_fn = nn.SiLU()
+        else:
+            mish = True
+            act_fn = nn.Mish()
+
+        self.time_dim = dim
+        self.returns_dim = dim
+
+        self.time_mlp = nn.Sequential(
+            SinusoidalPosEmb(dim),
+            nn.Linear(dim, dim * 4),
+            act_fn,
+            nn.Linear(dim * 4, dim),
+        )
+
+        self.conditional = conditional
+        self.condition_dropout = condition_dropout
+        self.calc_energy = calc_energy
+
+        embed_dim = dim
+        
+        if self.conditional:
+            embed_dim = dim
+            self.value_embedding =  nn.Linear(1, transition_dim//2)
+            self.goal_embedding =  nn.Linear(cond_dim, transition_dim - transition_dim//2)
+            
+        self.downs = nn.ModuleList([])
+        self.ups = nn.ModuleList([])
+        num_resolutions = len(in_out)
+
+        print(in_out)
+        for ind, (dim_in, dim_out) in enumerate(in_out):
+            is_last = ind >= (num_resolutions - 1)
+
+            self.downs.append(nn.ModuleList([
+                # ResidualTemporalBlock(dim_in, dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                # ResidualTemporalBlock(dim_out, dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                TransformerEmbedder(dim_in, 2*dim_in, num_layer=4),
+                ResidualTemporalBlock(2*dim_in, 2*dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                Downsample1d(dim_out) if not is_last else nn.Identity(),
+                Downsample1d(dim_out) if not is_last else nn.Identity(),
+            ]))
+
+            if not is_last:
+                horizon = horizon // 2
+
+        mid_dim = dims[-1]
+        self.mid_block1 = ResidualTemporalBlock(mid_dim, mid_dim, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish)
+        self.mid_block2 = ResidualTemporalBlock(mid_dim, mid_dim, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish)
+
+        for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
+            is_last = ind >= (num_resolutions - 1)
+
+            self.ups.append(nn.ModuleList([
+                # ResidualTemporalBlock(dim_out * 2, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                # ResidualTemporalBlock(dim_in, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                TransformerEmbedder(dim_out, 2*dim_out, num_layer=4),
+                ResidualTemporalBlock(3*dim_out, 2*dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                Upsample1d(dim_in) if not is_last else nn.Identity(),
+                Upsample1d(dim_in) if not is_last else nn.Identity(),
+            ]))
+
+            if not is_last:
+                horizon = horizon * 2
+
+        self.final_conv = nn.Sequential(
+            Conv1dBlock(dim, dim, kernel_size=kernel_size, mish=mish),
+            nn.Conv1d(dim, transition_dim, 1),
+        )
+
+    def forward(self, x, time, value, goal):
+        '''
+            x : [ batch x horizon x transition ]
+            returns : [batch x horizon]
+        '''
+
+        if self.calc_energy:
+            x_inp = x
+        x = einops.rearrange(x, 'b h t -> b t h')
+
+        t = self.time_mlp(time)
+
+        if self.conditional:
+            value_embed = self.value_embedding(value)
+            goal_embed = self.goal_embedding(goal)
+            c = torch.cat([value_embed, goal_embed], dim=-1) # shape[-1] = dim
+            c = einops.rearrange(c, 'b h t -> b t h')
+
+        h = []
+
+        for transformer, resnet, downsample, downsample2 in self.downs:
+            # x = resnet(x, t)
+            # x = resnet2(x, t)
+            
+            x = transformer(x, context=c)
+            x = resnet(x, t)
+            d = x.shape[1]
+            x, c = x.split(d//2, dim=1)
+            h.append(x)
+            x = downsample(x)
+            c = downsample2(c)
+
+        x = self.mid_block1(x, t)
+        x = self.mid_block2(x, t)
+
+        for transformer, resnet, upsample, upsample2 in self.ups:
+            x = transformer(x, context=c)
+            x = torch.cat((x, h.pop()), dim=1)
+            x = resnet(x, t)
+            d = x.shape[1]
+            x, c = x.split(d//2, dim=1)
+            x = upsample(x)
+            c = upsample2(c)
+
+        x = self.final_conv(x)
+        x = einops.rearrange(x, 'b t h -> b h t')
+
+        # x += self.condition_mlp(cond)
+        # x += self.goal_mlp(einops.repeat(goal, 'b d -> b h d', h=self.horizon))
+        return x
 
     def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):
         '''

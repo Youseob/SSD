@@ -12,7 +12,7 @@ from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
 from utils.eval_module import main
 from dc.policy import FetchControl
-from .temporal import TemporalUnetConditional
+from .temporal import TemporalUnetConditional, TemporalUnetTransformer
 from .model import MLP
 from .diffusion import GaussianDiffusion
 from .qnet import CQLCritic, Critic, HindsightCritic
@@ -68,7 +68,9 @@ class DiffuserCritic(object):
         
         # self.model = MLP(state_dim, action_dim, goal_dim, dataset.horizon, conditional=conditional, \
         #                 condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
-        self.model = TemporalUnetConditional(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+        # self.model = TemporalUnetConditional(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
+        #                     dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
+        self.model = TemporalUnetTransformer(self.horizon, self.obsact_dim, goal_dim, conditional=conditional, \
                             dim_mults=dim_mults, condition_dropout=condition_dropout, calc_energy=calc_energy).to(device)
         self.diffuser = GaussianDiffusion(self.model, state_dim, action_dim, goal_dim, self.horizon,\
                                         n_timesteps=n_timesteps, clip_denoised=clip_denoised, action_weight=action_weight,\
@@ -140,14 +142,18 @@ class DiffuserCritic(object):
         for step in range(int(n_train_steps)):
             self.model.train()
             timer = Timer()
-            ## Critic
+            """
+                Critic
+            """
+            ## Sample random goal which will be used to relabel.
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
             if 'Fetch' in self.env_name or 'maze' in self.env_name:
-                # any states drawn from D
                 goal_rand = batch.goals[:, 0].clone()
             else:
                 goal_rand = batch.rtgs[:, 0].clone()
+                
+            ## Calculate critic loss and step.
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
             loss_q1, loss_q2, q, qloss1, qloss2 = self.critic.loss(batch, goal_rand, self.ema_model)
@@ -160,53 +166,47 @@ class DiffuserCritic(object):
             loss_q2.backward()
             self.critic_optimizer2.step()
             
-            # self.actor_optimizer.zero_grad()
-            # loss_actor = -q
-            # loss_actor.backward()
-            # self.actor_optimizer.step()
-            
             loss_q = torch.min(loss_q1, loss_q2)
             
-            ## Diffuser
+            
+            """
+                Diffuser
+            """
+            
             self.diffuser_optimizer.zero_grad()
             for i in range(self.gradient_accumulate_every):
+                '''
+                    Sample trajectories of observation and action.
+                '''
                 batch = next(self.dataloader_train)
                 batch = batch_to_device(batch)
                 observation = batch.trajectories[:, :, :self.observation_dim]
                 action = batch.trajectories[:, :, self.observation_dim:]                
                 
-                # hindsight experience goal/reward
-                # trajectories = batch.trajectories
-                if not self.has_object:
-                    # goal = torch.cat([trajectories[:self.batch_size, -1, :self.goal_dim], rand_goal], 0)
-                    ag = batch.trajectories[:, -1, :self.goal_dim]
-                    goal_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
-                    current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
-                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                            self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                    values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
-                else:
-                    ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim]
-                    goal_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
-                    current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
-                    values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                                            self.critic.unnorm(action, 'actions'), 
-                                            self.critic.unnorm(goal_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                    values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
-                # else:
-                #     goal = batch.rtgs[:, -1].clone()
-                #     goal_rpt = einops.repeat(goal, 'b d -> b r d', r=self.horizon)
-                #     values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
-                #                             self.critic.unnorm(action, 'actions'), 
-                #                             goal_rpt)
+                '''
+                    Hindsight experience goals/values. 
+                    Use only successful trajectories to calculate Q values.
+                    
+                    current_t:              Randomly selected starting point t.
+                    indexes:                From (current_t) to (current_t + horizon).
+                    trajectories_padded:    Pad with achieved goal, with shape (b 2h d).
+                '''
+                ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim] if self.has_object else batch.trajectories[:, -1, :self.goal_dim]
 
-                current_idx = current_t.reshape(self.batch_size, 1) + einops.repeat(np.arange(self.horizon), 'h -> b h', b=self.batch_size)
-                
+                dg = batch.goals
+                ag_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
+                current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
+                values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                                        self.critic.unnorm(action, 'actions'), 
+                                        self.critic.unnorm(ag_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
+                # values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
+
+                indexes = current_t.reshape(self.batch_size, 1) \
+                        + einops.repeat(np.arange(self.horizon), 'h -> b h', b=self.batch_size)                
                 trajectories = einops.rearrange(batch.trajectories, 'b h d -> b d h')
                 trajectories_padded = F.pad(trajectories, (0, self.horizon), mode='replicate')
                 trajectories_padded = einops.rearrange(trajectories_padded, 'b d h -> b h d')
-                trajectories_padded = trajectories_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), current_idx]
+                trajectories_padded = trajectories_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), indexes]
                 
                 loss_d = self.diffuser.loss(trajectories_padded, values.detach(), ag, has_object=self.has_object)
                 loss_d = loss_d / self.gradient_accumulate_every
@@ -227,13 +227,13 @@ class DiffuserCritic(object):
             batch_val = batch_to_device(batch)
             if 'Fetch' in self.env_name or 'maze' in self.env_name:
                 # any states drawn from D
-                goal_rand_val = batch_val.goals.clone()
+                goal_rand_val = batch_val.goals[:, 0].clone()
             else:
                 goal_rand_val = batch_val.rtgs[:, 0].clone()
             batch_val = next(self.dataloader_val)
             batch_val = batch_to_device(batch_val)
             with torch.no_grad():
-                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand_val[:, 0], self.ema_model)
+                loss_q1_val, loss_q2_val, _, _, _ = self.critic.loss(batch_val, goal_rand_val, self.ema_model)
             loss_q_val = torch.min(loss_q1_val, loss_q2_val)
             if loss_q_val < best_loss_q:
                 print(f'** min val_loss for critic! ')
@@ -246,6 +246,7 @@ class DiffuserCritic(object):
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
+                
                 if self.step < 0:
                     succ_rates, undisc_returns, disc_returns, distances = [], [], [], []
                 else:

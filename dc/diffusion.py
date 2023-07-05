@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 import copy
+import einops
 
 import utils as utils
 from utils.helpers import cosine_beta_schedule, linear_beta_schedule, vp_beta_schedule, \
@@ -173,8 +174,9 @@ class GaussianDiffusion(nn.Module):
         return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
     
     @torch.no_grad()
-    def p_sample_loop(self, shape, state, cond, goal, has_object, return_diffusion=False):
+    def p_sample_loop(self, shape, state, cond, goals, has_object, return_diffusion=False):
         batch_size = shape[0]
+        goal = goals[0, -1]
         x = 0.5 * torch.randn(shape, device=self.device)
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
@@ -193,7 +195,7 @@ class GaussianDiffusion(nn.Module):
         progress = utils.Progress(self.n_timesteps)
         for i in reversed(range(0, self.n_timesteps)):
             timesteps = torch.full((batch_size,), i, device=self.device, dtype=torch.long)
-            x = self.p_sample(x, timesteps, cond, goal)
+            x = self.p_sample(x, timesteps, cond, goals)
             # apply conditioning
             x[:, 0, :self.observation_dim] = state.clone()
             if has_object:
@@ -257,7 +259,9 @@ class GaussianDiffusion(nn.Module):
             goal.requires_grad = True
             noise.requires_grad = True
         
-        x_recon = self.model(x_noisy, t, cond, goal)
+        cond_rpt = einops.repeat(cond, 'b d -> b repeat d', repeat=self.horizon)
+        goal_rpt = einops.repeat(goal, 'b d -> b repeat d', repeat=self.horizon)
+        x_recon = self.model(x_noisy, t, cond_rpt, goal_rpt)
         if self.clip_denoised:
             x_recon.clamp_(-1., 1.)
         
