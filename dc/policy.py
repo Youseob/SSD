@@ -115,7 +115,7 @@ class FetchControl:
             # action[:3] = target - state[:self.goal_dim]
         else:
             normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
-            normed_target = to_torch(self.normalizer(target, 'goals')).reshape(1, self.goal_dim)
+            normed_target = to_torch(self.normalizer(target, 'achieved_goals')).reshape(1, self.goal_dim)
             samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
             action = self.normalizer.unnormalize(to_np(samples)[0, 0, self.observation_dim:], 'actions')
         

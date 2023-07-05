@@ -500,71 +500,77 @@ class HindsightCritic(nn.Module):
         
         return loss1, loss2, targ_q.mean(), (min_q1_loss**2).mean(), (min_q2_loss**2).mean()
 
-    def loss_random(self, batch, goal_rand, ema_model):
-        trajectories = batch.trajectories
+    def loss_critic(self, batch, goal_rand, ema_model):
+        trajectories = batch.trajectories.clone()
         batch_size, horizon, _ = trajectories.shape
         
-        # Hindsight goals
+        # hindsight goals and values
         if self.has_object:
-            ag = batch.trajectories[:, :, self.goal_dim:2*self.goal_dim]
-            her_indexes, t_indexes = self.make_indices(batch_size, horizon)
+            # Hindsight goals
+            ag = self.unnorm(trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
+            dg = self.unnorm(goal_rand, 'goals')
+            observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
+            action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')
+            observation_cat = observation.repeat(2,1)
+            action_cat = action.repeat(2,1)
+            future_t = np.random.randint(1, horizon, size=(batch_size,))
+            hindsight_goals = ag[np.arange(batch_size), future_t]
+            goals_cat = torch.cat([hindsight_goals, dg], 0)
             
-            observation = self.unnorm(trajectories[:, :, :self.observation_dim], 'observations')
-            action = self.unnorm(trajectories[:, :, self.observation_dim:], 'actions')
+            # Hindsight values
+            discount = self.gamma ** (future_t - 1)
+            values = to_torch((discount * 1).reshape(batch_size, 1))
+            next_observation = self.unnorm(trajectories[:, 1, :self.observation_dim], 'observations')
+            sample = ema_model(trajectories[:, 1, :self.observation_dim], 
+                               torch.ones_like(batch.rtgs),
+                               goal_rand,
+                               self.has_object)
+            next_action = self.unnorm(sample[:, 0, self.observation_dim:], 'actions')
+            next_q1, next_q2 = self.forward_target(next_observation, next_action, dg)
+            td_target1 = torch.cat([values, self.gamma * next_q1], 0)
+            td_target2 = torch.cat([values, self.gamma * next_q2], 0)
             
-            next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
-            next_observation = self.add_last_obs(next_observation)
+            # observation, action, next_observation, next_action, nextnext_observation = self.unnorm_transition(trajectories, self.has_object)
+            # nextnext_action = ema_model(nextnext_observation, 
+            #                         torch.ones_like(batch.rtgs), 
+            #                         batch.goals[:, -1], self.has_object)[:, 0, self.observation_dim:]
+            # observation_cat = next_observation.repeat(2,1)
+            # action_cat = next_action.repeat(2,1)
+            # goals = torch.cat([batch.goals[:, -1], goal_rand], 0)
+            # goals = self.unnorm(goals, 'achieved_goals')
             
-            last_action = ema_model(next_observation[:, -1], 
-                                    torch.ones_like(batch.rtgs), 
-                                    ag[:, -1], self.has_object)[:, 0, self.observation_dim:]
-            next_action = torch.cat([self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions'),
-                                    last_action[:,None]], 1)
-            
-            # goals = to_np(batch.goals.clone())
-            # np.random.shuffle(goals)
-            goals = goal_rand[:, 0]
-            goals[her_indexes] = ag[her_indexes, t_indexes].squeeze()
-            goals = self.unnorm(goals, 'achieved_goals')
+            # values = torch.ones((batch_size, 1)).to('cuda')
+            # next_q1, next_q2 = self.forward_target(nextnext_observation, nextnext_action, goal_rand)
         else:
-            ag = batch.trajectories[:, :, :self.goal_dim]
-            her_indexes, t_indexes = self.make_indices(batch_size, horizon-1)
+            # Hindsight goals
+            ag = self.unnorm(trajectories[:, :, :self.goal_dim], 'achieved_goals')
+            dg = self.unnorm(goal_rand, 'goals')
+            observation, action, next_observation, next_action, _ = self.unnorm_transition(trajectories, self.has_object)
+            observation_cat = observation.repeat(2,1)
+            action_cat = action.repeat(2,1)
+            hindsight_goals = ag[np.arange(batch_size), 1]
+            goals_cat = torch.cat([hindsight_goals, dg], 0)
             
-            observation = self.unnorm(trajectories[:, :-1, :self.observation_dim], 'observations')
-            action = self.unnorm(trajectories[:, :-1, self.observation_dim:], 'actions')
-            
-            next_observation = self.unnorm(trajectories[:, 1:, :self.observation_dim], 'observations')
-            next_action = self.unnorm(trajectories[:, 1:, self.observation_dim:], 'actions')
-
-            # goals = to_np(batch.goals.clone())
-            # np.random.shuffle(goals)
-            goals = goal_rand[:, 0]
-            goals[her_indexes] = ag[her_indexes, t_indexes].squeeze()
-            goals = self.unnorm(goals, 'achieved_goals')
-         
-        
-        # Hindsight values R
-        h = horizon if 'Fetch' in self.env_name and self.has_object else horizon -1
-        goals_rpt = einops.repeat(goals, 'b d -> b h d', h=h)
-        next_q1, next_q2 = self.forward_target(next_observation, next_action, goals_rpt)
-        td_target1 = self.gamma * next_q1
-        td_target2 = self.gamma * next_q2
-        td_target1[her_indexes, t_indexes] = 1
-        td_target2[her_indexes, t_indexes] = 1
-        
-        
-        # next_action_sampled = ema_model(next_observation, values, goal_rand)
+            # Hindsight values
+            values = torch.ones((batch_size, 1)).to('cuda')
+            next_q1, next_q2 = self.forward_target(next_observation, next_action, self.unnorm(goal_rand, 'goals'))
+            td_target1 = torch.cat([values, self.gamma * next_q1], 0)
+            td_target2 = torch.cat([values, self.gamma * next_q2], 0)
 
         # calaulate q value
-        pred_q1, pred_q2 = self.forward(observation, action, goals_rpt)
-        targ_q1, targ_q2 = self.forward_target(observation, action, goals_rpt)
-        targ_q = torch.min(targ_q1, targ_q2)
+        pred_q1, pred_q2 = self.forward(observation_cat, action_cat, goals_cat)
         
+        # For negative action reg
+        # x = torch.cat([observation_cat, goals], -1)
+        targ_q1, targ_q2 = self.forward_target(observation_cat, action_cat, goals_cat)
+        targ_q = torch.min(targ_q1, targ_q2)
+        # negative_action = self.actor(x)
+        # min_q1_loss, min_q2_loss = self.forward(observation_cat, negative_action.detach(), goals)
         # sample negative action
         num_random_actions = 10
-        random_actions = torch.FloatTensor(batch_size * num_random_actions, h, action.shape[-1]).uniform_(-1, 1).to(action.device)
+        random_actions = torch.FloatTensor(batch_size * num_random_actions, action.shape[-1]).uniform_(-1, 1).to(action.device)
         obs_rpt = observation.repeat_interleave(num_random_actions, axis=0)
-        goals_rrpt = goals_rpt.repeat_interleave(num_random_actions, axis=0)
+        goals_rrpt = hindsight_goals.repeat_interleave(num_random_actions, axis=0)
         rand_q1, rand_q2 = self.forward(obs_rpt, random_actions, goals_rrpt)        
         rand_q1 = rand_q1.reshape(batch_size, -1)
         rand_q2 = rand_q2.reshape(batch_size, -1)
@@ -577,6 +583,7 @@ class HindsightCritic(nn.Module):
         min_q1_loss = rand_q1[torch.arange(batch_size), i1].mean()
         min_q2_loss = rand_q2[torch.arange(batch_size), i2].mean()
         
+        # Final loss
         loss1 = F.mse_loss(td_target1.detach(), pred_q1, reduction='mean') + (min_q1_loss**2).mean()
         loss2 = F.mse_loss(td_target2.detach(), pred_q2, reduction='mean') + (min_q2_loss**2).mean()
         
