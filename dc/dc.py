@@ -187,28 +187,44 @@ class DiffuserCritic(object):
                     Hindsight experience goals/values. 
                     Use only successful trajectories to calculate Q values.
                     
+                    ag:                     Achieved goal. (b, d)
+                    ag_rpt:                 (b, h, d)
+                    dg_rpt:                 Desired goal. (b, h, d)
                     current_t:              Randomly selected starting point t.
                     indexes:                From (current_t) to (current_t + horizon).
                     trajectories_padded:    Pad with achieved goal, with shape (b 2h d).
                 '''
                 ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim] if self.has_object else batch.trajectories[:, -1, :self.goal_dim]
-
-                dg = batch.goals
-                ag_rpt = einops.repeat(ag, 'b d -> b r d', r=self.horizon)
-                current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size)) 
-                values = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                dg_rpt = batch.goals
+                ag_rpt = einops.repeat(ag, 'b d -> b h d', h=self.horizon)
+                goals = torch.cat([ag, dg_rpt[:, 0]], 0)
+                
+                current_t = np.random.randint(0, self.horizon-1, size=(self.batch_size,)) 
+                indexes = current_t.reshape((self.batch_size, 1)) \
+                        + einops.repeat(np.arange(self.horizon), 'h -> b h', b=self.batch_size)  
+                        
+                values_ag = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                         self.critic.unnorm(action, 'actions'), 
                                         self.critic.unnorm(ag_rpt, 'achieved_goals'))[np.arange(self.batch_size), current_t]
-                # values = einops.repeat(values, 'b d -> b r d', r=self.horizon)
-
-                indexes = current_t.reshape(self.batch_size, 1) \
-                        + einops.repeat(np.arange(self.horizon), 'h -> b h', b=self.batch_size)                
+                values_dg = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
+                                        self.critic.unnorm(action, 'actions'), 
+                                        self.critic.unnorm(dg_rpt, 'goals'))[np.arange(self.batch_size), current_t]
+                values = torch.cat([values_ag, values_dg], 0)
+                              
                 trajectories = einops.rearrange(batch.trajectories, 'b h d -> b d h')
                 trajectories_padded = F.pad(trajectories, (0, self.horizon), mode='replicate')
                 trajectories_padded = einops.rearrange(trajectories_padded, 'b d h -> b h d')
                 trajectories_padded = trajectories_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), indexes]
                 
-                loss_d = self.diffuser.loss(trajectories_padded, values.detach(), ag, has_object=self.has_object)
+                # agdg
+                # trajectories_padded = trajectories_padded.repeat((2, 1, 1))
+                
+                # ag
+                # loss_d = self.diffuser.loss(trajectories_padded, values_ag.detach(), ag, has_object=self.has_object)
+                # dg
+                loss_d = self.diffuser.loss(trajectories_padded, values_dg.detach(), dg_rpt[:, 0], has_object=self.has_object)
+                # agdg
+                # loss_d = self.diffuser.loss(trajectories_padded, values.detach(), goals, has_object=self.has_object)
                 loss_d = loss_d / self.gradient_accumulate_every
                 loss_d.backward()
             self.diffuser_optimizer.step()

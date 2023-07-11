@@ -102,7 +102,7 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='sungyoon',
+               entity='aaai2024',
                config=args,
                dir=wandb_dir,
                )

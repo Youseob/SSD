@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', 'v2_'),
+    ('prefix', 'dg'),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [8, 16, 20],
+        'horizon': [16, 20],
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -55,8 +55,8 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        'logbase': ['/ext2/sykim/DC/logs'],
-        # 'logbase': ['logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['logs'],
         'prefix': ['dc/transformer1'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
@@ -74,7 +74,7 @@ base = {
         'ema_decay': [0.995],
         # 'save_freq': [5000],
         'sample_freq': [5000],
-        'log_freq': [5000],
+        'log_freq': [10000],
         'n_saves': [10],
         'save_parallel': [False],
         'n_reference': [50],
@@ -108,9 +108,9 @@ base = {
         
         ## serialization
         'loadbase': [None],
-        # 'logbase': ['./logs'],
-        'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/fetch_final2'],
+        'logbase': ['./logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/transformer1'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,8 +121,8 @@ base = {
         'seed': [0, 1,2,3],
 
         ## loading
-        'diffusion_loadpath': ['f:v2_dc/final_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [99999],
+        'diffusion_loadpath': ['f:v2_dc/transformer1_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [799999],
 
         'verbose': [False],
         'suffix': ['0'],

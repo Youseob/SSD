@@ -19,8 +19,8 @@ from utils.helpers import discounted_return
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-large-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'FetchPickAndPlace-v1'
+    config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -37,7 +37,7 @@ args = Parser().parse_args(iterparser)
 
 env = datasets.load_environment(args.dataset)
 # env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
-env.seed(args.epi_seed)
+# env.seed(args.epi_seed)
 horizon = args.horizon
 
 dataset = datasets.SequenceDataset(
@@ -122,7 +122,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"rand_{args.dataset}"
+    wandb.run.name = f"{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -166,7 +166,7 @@ for t in range(env.max_episode_steps):
             observation = state['observation']
 
     if args.increasing_condition:
-        condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
 
     action = policy.act(observation, condition, target, at_goal)
 
