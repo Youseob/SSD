@@ -367,7 +367,7 @@ class TemporalUnetTransformer(nn.Module):
     ):
         super().__init__()
 
-        dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
+        dims = [*map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
         print(f'[ models/temporal ] Channel dimensions: {in_out}')
         self.horizon = horizon
@@ -395,10 +395,9 @@ class TemporalUnetTransformer(nn.Module):
 
         embed_dim = dim
         
-        if self.conditional:
-            embed_dim = dim
-            self.value_embedding =  nn.Linear(1, transition_dim//2)
-            self.goal_embedding =  nn.Linear(cond_dim, transition_dim - transition_dim//2)
+        self.stateaction_embedding = nn.Linear(transition_dim, dim)
+        self.value_embedding =  nn.Linear(1, dim)
+        self.goal_embedding =  nn.Linear(cond_dim, dim)
             
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
@@ -411,10 +410,10 @@ class TemporalUnetTransformer(nn.Module):
             self.downs.append(nn.ModuleList([
                 # ResidualTemporalBlock(dim_in, dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 # ResidualTemporalBlock(dim_out, dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
-                TransformerEmbedder(dim_in, 2*dim_in, num_layer=4),
-                ResidualTemporalBlock(2*dim_in, 2*dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                TransformerEmbedder(dim_in, dim_in, num_layer=4),
+                ResidualTemporalBlock(dim_in, dim_out, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 Downsample1d(dim_out) if not is_last else nn.Identity(),
-                Downsample1d(dim_out) if not is_last else nn.Identity(),
+                # Downsample1d(dim_out) if not is_last else nn.Identity(),
             ]))
 
             if not is_last:
@@ -424,16 +423,16 @@ class TemporalUnetTransformer(nn.Module):
         self.mid_block1 = ResidualTemporalBlock(mid_dim, mid_dim, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish)
         self.mid_block2 = ResidualTemporalBlock(mid_dim, mid_dim, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish)
 
-        for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
+        for ind, (dim_in, dim_out) in enumerate(reversed(in_out)):
             is_last = ind >= (num_resolutions - 1)
 
             self.ups.append(nn.ModuleList([
                 # ResidualTemporalBlock(dim_out * 2, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 # ResidualTemporalBlock(dim_in, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
-                TransformerEmbedder(dim_out, 2*dim_out, num_layer=4),
-                ResidualTemporalBlock(3*dim_out, 2*dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
+                TransformerEmbedder(dim_out, dim_out, num_layer=4),
+                ResidualTemporalBlock(2 * dim_out, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 Upsample1d(dim_in) if not is_last else nn.Identity(),
-                Upsample1d(dim_in) if not is_last else nn.Identity(),
+                # Upsample1d(dim_in) if not is_last else nn.Identity(),
             ]))
 
             if not is_last:
@@ -444,56 +443,63 @@ class TemporalUnetTransformer(nn.Module):
             nn.Conv1d(dim, transition_dim, 1),
         )
 
-    def forward(self, x, time, value, goal):
+    def forward(self, trajectory, time, value, goal):
         '''
-            x : [ batch x horizon x transition ]
-            returns : [batch x horizon]
+            trajectory: [ batch x horizon x transition ]
+            value: [batch x horizon]
+            goal: [batch X horizon]
         '''
 
-        if self.calc_energy:
-            x_inp = x
+        # if self.calc_energy:
+        #     x_inp = x
+        x = self.stateaction_embedding(trajectory)
+        v = self.value_embedding(value)
+        g = self.goal_embedding(goal)
+        x = torch.cat([x, v[:, None, :], g[:, None, :]], dim=1)
         x = einops.rearrange(x, 'b h t -> b t h')
 
         t = self.time_mlp(time)
+        # t = torch.cat([t, g], dim=-1)
 
-        if self.conditional:
-            value_embed = self.value_embedding(value)
-            goal_embed = self.goal_embedding(goal)
-            c = torch.cat([value_embed, goal_embed], dim=-1) # shape[-1] = dim
-            c = einops.rearrange(c, 'b h t -> b t h')
+        # if self.conditional:
+        #     value_embed = self.value_embedding(value)
+        #     goal_embed = self.goal_embedding(goal)
+        #     c = torch.cat([value_embed, goal_embed], dim=-1) # shape[-1] = dim
+        #     c = einops.rearrange(c, 'b h t -> b t h')
 
+        # x = torch.cat([x, c], dim=-1)
         h = []
 
-        for transformer, resnet, downsample, downsample2 in self.downs:
+        for transformer, resnet, downsample in self.downs:
             # x = resnet(x, t)
             # x = resnet2(x, t)
             
-            x = transformer(x, context=c)
+            x = transformer(x)
             x = resnet(x, t)
-            d = x.shape[1]
-            x, c = x.split(d//2, dim=1)
+            # d = x.shape[1]
+            # x, c = x.split(d//2, dim=1)
             h.append(x)
             x = downsample(x)
-            c = downsample2(c)
+            # c = downsample2(c)
 
         x = self.mid_block1(x, t)
         x = self.mid_block2(x, t)
 
-        for transformer, resnet, upsample, upsample2 in self.ups:
-            x = transformer(x, context=c)
+        for transformer, resnet, upsample in self.ups:
+            x = transformer(x)
             x = torch.cat((x, h.pop()), dim=1)
             x = resnet(x, t)
-            d = x.shape[1]
-            x, c = x.split(d//2, dim=1)
+            # d = x.shape[1]
+            # x, c = x.split(d//2, dim=1)
             x = upsample(x)
-            c = upsample2(c)
+            # c = upsample2(c)
 
         x = self.final_conv(x)
         x = einops.rearrange(x, 'b t h -> b h t')
 
         # x += self.condition_mlp(cond)
         # x += self.goal_mlp(einops.repeat(goal, 'b d -> b h d', h=self.horizon))
-        return x
+        return x[:, :-2]
 
     def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):
         '''

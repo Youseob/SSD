@@ -7,7 +7,7 @@ from utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ('prefix', 'dg'),
+    ('prefix', ''),
     ('horizon', 'H'),
     ('n_diffusion_steps', 'T'),
     ('seed', 's'),
@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16, 20],
+        'horizon': [16, 20], # 4n + 2
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -57,7 +57,7 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc/transformer1'],
+        'prefix': ['dc/transformer2'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [10000],
-        'n_saves': [10],
+        'n_saves': [5],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],

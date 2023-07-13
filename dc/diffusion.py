@@ -259,9 +259,9 @@ class GaussianDiffusion(nn.Module):
             goal.requires_grad = True
             noise.requires_grad = True
         
-        cond_rpt = einops.repeat(cond, 'b d -> b repeat d', repeat=self.horizon)
-        goal_rpt = einops.repeat(goal, 'b d -> b repeat d', repeat=self.horizon)
-        x_recon = self.model(x_noisy, t, cond_rpt, goal_rpt)
+        # cond_rpt = einops.repeat(cond, 'b d -> b repeat d', repeat=self.horizon)
+        # goal_rpt = einops.repeat(goal, 'b d -> b repeat d', repeat=self.horizon)
+        x_recon = self.model(x_noisy, t, cond, goal)
         if self.clip_denoised:
             x_recon.clamp_(-1., 1.)
         
@@ -289,10 +289,11 @@ class GaussianDiffusion(nn.Module):
     
     def loss(self, trajectories, cond, goal, has_object):
         batch_size = len(trajectories)
-        x = trajectories
+        # x = torch.cat([trajectories, cond[:, None, :], goal[:, None, :]], dim=1)
+        
         state = trajectories[:, 0, :self.observation_dim]
-        t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
-        loss = self.p_losses(x, t, state, cond, goal, has_object)
+        t = torch.randint(0, self.n_timesteps, (batch_size,), device=trajectories.device).long()
+        loss = self.p_losses(trajectories, t, state, cond, goal, has_object)
     
         return loss.mean()
 

@@ -22,7 +22,17 @@ def cycle(dl):
         for data in dl:
             yield data
     
+
+def pad_horizon(x, horizon):
+    '''
+        x : shape of (b horizon d)
+        out: shape of (b 2*horizon d)
+    '''
+    x = einops.rearrange(x, 'b h d -> b d h')
+    x = F.pad(x, (0, horizon), mode='replicate')
+    return einops.rearrange(x, 'b d h -> b h d')
     
+
 class DiffuserCritic(object):
     def __init__(self, 
                  dataset,
@@ -209,22 +219,22 @@ class DiffuserCritic(object):
                 values_dg = self.critic.q_min(self.critic.unnorm(observation, 'observations'), 
                                         self.critic.unnorm(action, 'actions'), 
                                         self.critic.unnorm(dg_rpt, 'goals'))[np.arange(self.batch_size), current_t]
+                # values_ag_padded = pad_horizon(values_ag, self.horizon)
+                # values_dg_padded = pad_horizon(values_dg, self.horizon)
+                # values = torch.cat([values_ag_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), indexes], \
+                #                     values_dg_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), indexes]], 0)
                 values = torch.cat([values_ag, values_dg], 0)
-                              
-                trajectories = einops.rearrange(batch.trajectories, 'b h d -> b d h')
-                trajectories_padded = F.pad(trajectories, (0, self.horizon), mode='replicate')
-                trajectories_padded = einops.rearrange(trajectories_padded, 'b d h -> b h d')
+                
+                trajectories_padded = pad_horizon(batch.trajectories, self.horizon)
                 trajectories_padded = trajectories_padded[np.arange(self.batch_size).reshape(self.batch_size, 1), indexes]
                 
                 # agdg
-                # trajectories_padded = trajectories_padded.repeat((2, 1, 1))
+                trajectories_padded = trajectories_padded.repeat((2, 1, 1))
                 
                 # ag
                 # loss_d = self.diffuser.loss(trajectories_padded, values_ag.detach(), ag, has_object=self.has_object)
-                # dg
-                loss_d = self.diffuser.loss(trajectories_padded, values_dg.detach(), dg_rpt[:, 0], has_object=self.has_object)
                 # agdg
-                # loss_d = self.diffuser.loss(trajectories_padded, values.detach(), goals, has_object=self.has_object)
+                loss_d = self.diffuser.loss(trajectories_padded, values.detach(), goals, has_object=self.has_object)
                 loss_d = loss_d / self.gradient_accumulate_every
                 loss_d.backward()
             self.diffuser_optimizer.step()
@@ -262,27 +272,25 @@ class DiffuserCritic(object):
                 self.save(label)
                 
             if self.step % self.log_freq == 0:
-                
-                if self.step < 0:
-                    succ_rates, undisc_returns, disc_returns, distances = [], [], [], []
-                else:
-                    policy = FetchControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, disc_returns, distances = main(env, 10, policy, self.horizon)
-                
-                print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
-                if self.wandb:
-                    wandb.log({
+                output = {
                         "loss_d": loss_d,
                         "loss_q": loss_q,
                         "loss_q_val": loss_q_val,
                         "Q": q.mean(),
                         "qloss1": qloss1,
-                        "qloss2": qloss2,
-                        "succcess_rate": np.array(succ_rates).mean(),
-                        "return": np.array(undisc_returns).mean(),
-                        "discounted_returns": np.array(disc_returns).mean(),
-                        "distance": np.array(distances).mean(),
-                    }, step = self.step)
+                        "qloss2": qloss2, }
+                if 'Fetch' in self.env_name:
+                    policy = FetchControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                    succ_rates, undisc_returns, disc_returns, distances = main(env, 10, policy, self.horizon)
+                    output["success_rate"] = np.array(succ_rates).mean()
+                    output["returns"] = np.array(undisc_returns).mean()
+                    output["discounted_returns"] = np.array(disc_returns).mean()
+                    output["distance"] = np.array(distances).mean()
+                
+                print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
+
+                if self.wandb:
+                    wandb.log(output, step = self.step)
                     
             self.step += 1
     

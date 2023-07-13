@@ -138,7 +138,7 @@ def her_maze2d_set_terminals(env):
     threshold = 0.5
 
     def _fn(dataset):
-        dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
+        # dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
         dataset['rtgs'] = np.zeros_like(dataset['rewards'])
         start = 0
         for i in range(len(dataset['observations'])):
@@ -166,7 +166,7 @@ def her_maze2d_set_terminals(env):
         ##      at goal at time t and
         ##      not at goal at time t + 1
         timeouts[:-1] = at_goal[:-1] * ~at_goal[1:]
-        rewards = at_goal.astype(np.float32)
+        # rewards = at_goal.astype(np.float32)
 
         timeout_steps = np.where(timeouts)[0]
         path_lengths = timeout_steps[1:] - timeout_steps[:-1]
@@ -178,6 +178,8 @@ def her_maze2d_set_terminals(env):
 
         dataset['timeouts'] = timeouts
         dataset['goals'] = her_goal
+        dataset['achieved_goals'] = dataset['observations'][...,:2]
+        dataset['next_observations'] = np.concatenate([dataset['observations'][1:], dataset['observations'][-1,None]], 0)
         # dataset['rewards'] = rewards
         return dataset
 

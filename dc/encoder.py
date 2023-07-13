@@ -167,7 +167,7 @@ class AttentionLayers(nn.Module):
         self.layers = nn.ModuleList([])
         self.pia_pos_emb = FixedPositionalEmbedding(dim) if position_infused_attn else None
         self.cross_attend = cross_attend
-        self.layer_types = ('c', 'f')
+        self.layer_types = ('a', 'f')
         self.pre_norm = pre_norm
         
         for _ in range(depth):    
@@ -249,7 +249,7 @@ class TransformerEmbedder(nn.Module):
         self.dropout = nn.Dropout(dr)
         self.project_x = nn.Linear(dim, dim_attn) if dim != dim_attn else nn.Identity()
         self.project_c = nn.Linear(dim, dim_attn) if dim != dim_attn else nn.Identity()
-        self.attn_layers = AttentionLayers(dim=dim_attn, depth=num_layer, cross_attend=True)
+        self.attn_layers = AttentionLayers(dim=dim_attn, depth=num_layer, cross_attend=False)
         self.norm = nn.LayerNorm(dim_attn)
         
     def forward(self, x, context=None, mask=None, context_mask=None, return_attn=False):
@@ -265,7 +265,7 @@ class TransformerEmbedder(nn.Module):
             context = self.dropout(context)
             context = self.project_c(context)
             
-        x, intermediates = self.attn_layers(x, context=context, mask=mask, return_hiddens=True, context_mask=context_mask)
+        x, intermediates = self.attn_layers(x, mask=mask, return_hiddens=True, context_mask=context_mask)
         z = self.norm(x)
         
         z = rearrange(z, 'b h t -> b t h')

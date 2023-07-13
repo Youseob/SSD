@@ -165,7 +165,7 @@ def main(env, n_episodes, policy, horizon):
 
             # if args.increasing_condition:
             #     condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
-            condition = torch.ones((1, horizon, 1)).to('cuda')
+            condition = torch.ones((1, 1)).to('cuda')
             action = policy.act(observation, condition, state['desired_goal'], at_goal)
 
             # # Store rollout for rendering
