@@ -10,8 +10,8 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
-from utils.eval_module import main
-from dc.policy import FetchControl
+from utils.eval_module import main, main_maze
+from dc.policy import *
 from .temporal import TemporalUnetConditional, TemporalUnetTransformer
 from .model import MLP
 from .diffusion import GaussianDiffusion
@@ -285,6 +285,13 @@ class DiffuserCritic(object):
                     output["success_rate"] = np.array(succ_rates).mean()
                     output["returns"] = np.array(undisc_returns).mean()
                     output["discounted_returns"] = np.array(disc_returns).mean()
+                    output["distance"] = np.array(distances).mean()
+                elif 'maze2d' in self.env_name:
+                    policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.horizon)
+                    output["success_rate"] = np.array(succ_rates).mean()
+                    output["returns"] = np.array(undisc_returns).mean()
+                    output["scores"] = np.array(scores).mean()
                     output["distance"] = np.array(distances).mean()
                 
                 print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)

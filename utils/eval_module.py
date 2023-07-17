@@ -202,6 +202,40 @@ def main(env, n_episodes, policy, horizon):
         distances.append(distance)
     return succ_rates, undisc_returns, disc_returns, distances
 
+
+def main_maze(env, n_episodes, policy, horizon):
+    succ_rates = []
+    undisc_returns = []
+    scores = []
+    distances = []
+    for _ in range(n_episodes):
+        total_reward = 0 
+        rewards = []
+        at_goal = False
+        state = env.reset()
+        target = env._target
+        for t in range(env.max_episode_steps):
+            at_goal = np.linalg.norm(state[:2] - target) <= 0.5
+            
+            condition = torch.ones((1, 1)).to('cuda') 
+            action = policy.act(state, condition, target, at_goal)
+            
+            next_state, reward, done, _ = env.step(action)
+            
+            total_reward += reward
+            rewards.append(reward)
+            score = env.get_normalized_score(total_reward)
+            distance = np.linalg.norm(state[:2] - target)
+            
+            if done:
+                break
+            state = next_state
+        succ_rates.append(at_goal)
+        undisc_returns.append(total_reward)
+        scores.append(score)
+        distances.append(distance)
+    return succ_rates, undisc_returns, scores, distances
+
 # Rendering
 # if 'Fetch' in args.dataset:
 #     success = (reward == 1)

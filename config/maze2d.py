@@ -58,7 +58,7 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc/transformer2'],
+        'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
@@ -75,7 +75,7 @@ base = {
         'ema_decay': [0.995],
         # 'save_freq': [5000],
         'sample_freq': [10000],
-        'log_freq': [1000],
+        'log_freq': [10000],
         'n_saves': [2],
         'save_parallel': [False],
         'n_reference': [50],
@@ -112,7 +112,7 @@ base = {
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer1'],
+        'prefix': ['eval/transformer2'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,12 +121,12 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [2,3,4],
+        'seed': [3,4],
         # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/H{horizon}_T{n_diffusion_steps}_dr0.25'],
-        'diffusion_epoch': [999999],
+        'diffusion_loadpath': ['f:dc/transformer2_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [499999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -168,31 +168,31 @@ base = {
 
 maze2d_umaze_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [32],
         'n_diffusion_steps': [50],
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [32],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [48],
         'n_diffusion_steps': [50],
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [48],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [128],
-        'n_diffusion_steps': [100],
+        'horizon': [64],
+        'n_diffusion_steps': [50],
     },
     'evaluate': {
-        'horizon': [128],
-        'n_diffusion_steps': [100],
+        'horizon': [64],
+        'n_diffusion_steps': [50],
     },
 }

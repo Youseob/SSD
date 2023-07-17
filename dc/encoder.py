@@ -68,10 +68,10 @@ class FixedPositionalEmbedding(nn.Module):
         t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq) + offset
         sinusoid_inp = torch.einsum('i , j -> i j', t, self.inv_freq)
         emb = torch.cat((sinusoid_inp.sin(), sinusoid_inp.cos()), dim=-1)
-        return emb[None, :, :]
+        return x + emb[None, :, :]
+
     
-    
-class Attention(nn.Module):
+class MultiHeadAttention(nn.Module):
     def __init__(self, 
                  dim,
                  dim_head=64,
@@ -80,7 +80,7 @@ class Attention(nn.Module):
                  dr=0.,
                  ):
         super().__init__()
-        self.scale = dim_head ** -0.5
+        self.scale = (dim_head * heads) ** -0.5
         self.heads = heads
         self.mask = mask
         
@@ -90,7 +90,6 @@ class Attention(nn.Module):
         self.Wk = nn.Linear(dim, hidden_dim, bias=False)
         self.Wv = nn.Linear(dim, hidden_dim, bias=False)
         self.dropout = nn.Dropout(dr)
-        
         self.out = nn.Linear(hidden_dim, dim)
         
     def forward(self, 
@@ -159,23 +158,25 @@ class AttentionLayers(nn.Module):
                  cross_attend=True,
                  position_infused_attn=False,
                  pre_norm=True,
+                 dr=0.,
                  ):
         super().__init__()
         
         self.dim = dim
         self.depth = depth
         self.layers = nn.ModuleList([])
-        self.pia_pos_emb = FixedPositionalEmbedding(dim) if position_infused_attn else None
+        self.pos_emb = FixedPositionalEmbedding(dim) if position_infused_attn else None
         self.cross_attend = cross_attend
         self.layer_types = ('a', 'f')
         self.pre_norm = pre_norm
+        self.dropout = nn.Dropout(dr)
         
         for _ in range(depth):    
             for layer_type in self.layer_types:
                 if layer_type == 'a' or layer_type == 'c':
-                    self.layers.append(nn.ModuleList([nn.LayerNorm(dim), Attention(dim, heads=heads), Residual()]))
+                    self.layers.append(nn.ModuleList([nn.LayerNorm(dim), MultiHeadAttention(dim, heads), Residual()]))
                 elif layer_type == 'f':
-                    self.layers.append(nn.ModuleList([nn.LayerNorm(dim), FeedForward(dim), Residual()]))
+                    self.layers.append(nn.ModuleList([nn.Identity(), FeedForward(dim), nn.Identity()]))
                 else:
                     NotImplementedError(layer_type)
                     
@@ -190,44 +191,43 @@ class AttentionLayers(nn.Module):
         assert exists(context) == self.cross_attend
         hiddens = []
         intermediates = []
-        prev_score = None
-        prev_cross_score = None
+        # prev_score = None
+        # prev_cross_score = None
         
         mems = [None] * self.depth
         
         for ind, (layer_type, (norm, block, residual_fn)) in enumerate(zip(self.layer_types, self.layers)):
             is_last = ind == (len(self.layers) - 1)
             
-            if layer_type == 'a':
-                hiddens.append(x)
-                layer_mem = mems.pop(0)
+            # if layer_type == 'a':
+            #     hiddens.append(x)
+            #     layer_mem = mems.pop(0)
 
-            # residual = x
-
-            if self.pre_norm:
-                x = norm(x)
+            residual = x
+            x = norm(x)
 
             if layer_type == 'a':
-                out, inter = block(x, mask=mask, sinusoidal_emb=self.pia_pos_emb,
-                                   prev_score=prev_score, mem=layer_mem)
+                out, inter = block(x, mask=mask)
+                out = self.dropout(out)
+                x = residual_fn(out, residual)
             elif layer_type == 'c':
-                out, inter = block(x, context=context, mask=mask, context_mask=context_mask, 
-                                   prev_score=prev_cross_score)
+                out, inter = block(x, context=context, mask=mask)
+                out = self.dropout(out)
+                x = residual_fn(out, residual)
             elif layer_type == 'f':
                 out = block(x)
 
-            # x = residual_fn(out, residual)
 
-            if layer_type in ('a', 'c'):
-                intermediates.append(inter)
+            # if layer_type in ('a', 'c'):
+            #     intermediates.append(inter)
 
-            if layer_type == 'a': # and self.residual_attn:
-                prev_score = inter.pre_softmax_attn
-            elif layer_type == 'c': # and self.cross_residual_attn:
-                prev_cross_score = inter.pre_softmax_attn
+            # if layer_type == 'a': 
+            #     prev_score = inter
+            # elif layer_type == 'c': 
+            #     prev_cross_score = inter
 
-            if not self.pre_norm and not is_last:
-                x = norm(x)
+            # if not self.pre_norm and not is_last:
+            #     x = norm(x)
 
         if return_hiddens:
             intermediates = LayerIntermediates(
@@ -249,8 +249,9 @@ class TransformerEmbedder(nn.Module):
         self.dropout = nn.Dropout(dr)
         self.project_x = nn.Linear(dim, dim_attn) if dim != dim_attn else nn.Identity()
         self.project_c = nn.Linear(dim, dim_attn) if dim != dim_attn else nn.Identity()
-        self.attn_layers = AttentionLayers(dim=dim_attn, depth=num_layer, cross_attend=False)
+        self.attn_layers = AttentionLayers(dim=dim_attn, depth=num_layer, cross_attend=False, dr=dr)
         self.norm = nn.LayerNorm(dim_attn)
+        
         
     def forward(self, x, context=None, mask=None, context_mask=None, return_attn=False):
         b = x.shape[0]

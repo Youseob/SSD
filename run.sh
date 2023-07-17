@@ -1,15 +1,15 @@
 #!/bin/bash
 cd ~/DC
-for diffusion_epoch in 799999
+for diffusion_epoch in 499999
 do
 for _ in {0..9}
 do
-for seed in 0 1
+for seed in 0 3
 do
-    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset FetchPush-v1 \
-                                                           --control fetch \
+    /home/sykim/anaconda3/envs/diffuser/bin/python eval.py --dataset maze2d-large-v1 \
+                                                           --control position \
                                                            --increasing_condition False \
-                                                           --horizon 16 \
+                                                           --multi True \
                                                            --seed $seed \
                                                             --diffusion_epoch $diffusion_epoch
 done

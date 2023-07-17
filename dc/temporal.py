@@ -429,9 +429,10 @@ class TemporalUnetTransformer(nn.Module):
             self.ups.append(nn.ModuleList([
                 # ResidualTemporalBlock(dim_out * 2, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 # ResidualTemporalBlock(dim_in, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
-                TransformerEmbedder(dim_out, dim_out, num_layer=4),
+                # @@symmetrize@@
                 ResidualTemporalBlock(2 * dim_out, dim_in, embed_dim=embed_dim, horizon=horizon, kernel_size=kernel_size, mish=mish),
                 Upsample1d(dim_in) if not is_last else nn.Identity(),
+                TransformerEmbedder(dim_in, dim_in, num_layer=4, dr=0.2),
                 # Upsample1d(dim_in) if not is_last else nn.Identity(),
             ]))
 
@@ -452,6 +453,7 @@ class TemporalUnetTransformer(nn.Module):
 
         # if self.calc_energy:
         #     x_inp = x
+        b, horizon, _ = trajectory.shape
         x = self.stateaction_embedding(trajectory)
         v = self.value_embedding(value)
         g = self.goal_embedding(goal)
@@ -485,13 +487,13 @@ class TemporalUnetTransformer(nn.Module):
         x = self.mid_block1(x, t)
         x = self.mid_block2(x, t)
 
-        for transformer, resnet, upsample in self.ups:
-            x = transformer(x)
+        for resnet, upsample, transformer in self.ups:
             x = torch.cat((x, h.pop()), dim=1)
             x = resnet(x, t)
+            x = upsample(x)
+            x = transformer(x)
             # d = x.shape[1]
             # x, c = x.split(d//2, dim=1)
-            x = upsample(x)
             # c = upsample2(c)
 
         x = self.final_conv(x)
@@ -499,7 +501,7 @@ class TemporalUnetTransformer(nn.Module):
 
         # x += self.condition_mlp(cond)
         # x += self.goal_mlp(einops.repeat(goal, 'b d -> b h d', h=self.horizon))
-        return x[:, :-2]
+        return x[:, :horizon]
 
     def get_pred(self, x, cond, time, y=None, use_dropout=True, force_dropout=False):
         '''

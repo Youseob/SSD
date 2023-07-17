@@ -176,7 +176,7 @@ class GaussianDiffusion(nn.Module):
     @torch.no_grad()
     def p_sample_loop(self, shape, state, cond, goals, has_object, return_diffusion=False):
         batch_size = shape[0]
-        goal = goals[0, -1]
+        goal = goals
         x = 0.5 * torch.randn(shape, device=self.device)
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()

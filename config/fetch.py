@@ -57,7 +57,7 @@ base = {
         ## serialization
         # 'logbase': ['/ext2/sykim/DC/logs'],
         'logbase': ['logs'],
-        'prefix': ['dc/transformer2'],
+        'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training

@@ -19,8 +19,8 @@ from utils.helpers import discounted_return
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchPickAndPlace-v1'
-    config: str = 'config.fetch'
+    dataset: str = 'maze2d-large-v1'
+    config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -143,7 +143,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, horizon, 1)).to(args.device)
+condition = torch.ones((1, 1)).to(args.device) 
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
