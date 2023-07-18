@@ -56,16 +56,16 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1, 2, 3],
+        'seed': [0, 1, 2],
         'maxq': [False],
         'alpha': [1],
-        'n_steps_per_epoch': [10000],
+        'n_steps_per_epoch': [1000],
         'loss_type': ['l2'],
         'n_train_steps': [1e6],
         # 'warmup_steps': [4e4],
@@ -168,21 +168,23 @@ base = {
 
 maze2d_umaze_v1 = {
     'diffusion': {
-        'horizon': [32],
+        'horizon': [64],
         'n_diffusion_steps': [50],
+        'max_path_length': [250]
     },
     'evaluate': {
-        'horizon': [32],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [48],
+        'horizon': [64],
         'n_diffusion_steps': [50],
+        'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [48],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }
@@ -190,6 +192,7 @@ maze2d_large_v1 = {
     'diffusion': {
         'horizon': [64],
         'n_diffusion_steps': [50],
+        'max_path_length': [600]
     },
     'evaluate': {
         'horizon': [64],
