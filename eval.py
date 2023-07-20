@@ -19,7 +19,7 @@ from utils.helpers import discounted_return
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-large-v1'
+    dataset: str = 'maze2d-umaze-v1'
     config: str = 'config.maze2d'
     experiment: str = 'evaluate'
 
@@ -118,11 +118,11 @@ if args.wandb:
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
-               entity='sungyoon',
+               entity='aaai2024',
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"{args.dataset}"
+    wandb.run.name = f"v2-1-{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
