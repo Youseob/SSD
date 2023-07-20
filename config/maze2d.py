@@ -23,6 +23,8 @@ eval_args_to_watch = [
     ('n_diffusion_steps', 'T'),
     ##
     ('seed', 's'),
+    ('increasing_condition', 'inc'),
+    ('multi', 'mul'),
     # ('epi_seed', 's'),
 ]
 
@@ -92,7 +94,7 @@ base = {
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [False, True],
+        'multi': [True],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 4, 5, 6, 7, 8, 9, 10], 
@@ -110,9 +112,9 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer2'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/transformer3'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,11 +123,11 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [3,4],
+        'seed': [0, 3,4],
         # 'conditional': [True],
 
         ## loading
-        'diffusion_loadpath': ['f:dc/transformer2_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_loadpath': ['f:dc/transformer3_H{horizon}_T{n_diffusion_steps}_s{seed}'],
         'diffusion_epoch': [499999],
 
         'verbose': [False],
