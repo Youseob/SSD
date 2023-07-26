@@ -122,7 +122,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"v2-1-{args.dataset}"
+    wandb.run.name = f"v2-{args.target_v}-{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -143,7 +143,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) 
+condition = torch.ones((1, 1)).to(args.device) * args.target_v
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
