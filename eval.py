@@ -13,6 +13,7 @@ from dc.policy import *
 import utils
 from utils.arrays import to_torch, to_np
 from utils.helpers import discounted_return
+from utils.eval_module import increasing_schedule
 
 ##############################################################################
 ################################ Config setup ################################
@@ -122,7 +123,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"v2-{args.target_v}-{args.dataset}"
+    wandb.run.name = f"{args.target_v}-{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -166,7 +167,8 @@ for t in range(env.max_episode_steps):
             observation = state['observation']
 
     if args.increasing_condition:
-        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        # condition = condition * gamma ** (env.max_episode_steps * 0.5 * ((env.max_episode_steps - t) / env.max_episode_steps))
+        condition = condition * increasing_schedule(t, gamma, env.max_episode_steps)
 
     action = policy.act(observation, condition, target, at_goal)
 

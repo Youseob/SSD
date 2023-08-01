@@ -114,7 +114,7 @@ base = {
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer3'],
+        'prefix': ['eval/transformer4'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -181,23 +181,23 @@ maze2d_umaze_v1 = {
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [96],
+        'horizon': [64],
         'n_diffusion_steps': [50],
         'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [96],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [192],
+        'horizon': [64],
         'n_diffusion_steps': [50],
         'max_path_length': [600]
     },
     'evaluate': {
-        'horizon': [192],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }

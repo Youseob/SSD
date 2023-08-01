@@ -11,7 +11,7 @@ from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
     dataset: str = 'FetchPickAndPlace-v1'
-    config: str = 'config.fetch'
+    config: str = 'config.maze2d'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
