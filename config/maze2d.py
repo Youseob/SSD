@@ -112,9 +112,9 @@ base = {
 
         ## serialization
         'loadbase': [None],
-        # 'logbase': ['./logs'],
-        'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/test3'],
+        'logbase': ['./logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/transformer4'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [0,1,2],
+        'seed': [3,4],
         # 'conditional': [True],
 
         ## loading

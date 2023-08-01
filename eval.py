@@ -13,6 +13,7 @@ from dc.policy import *
 import utils
 from utils.arrays import to_torch, to_np
 from utils.helpers import discounted_return
+from utils.eval_module import increasing_schedule
 
 ##############################################################################
 ################################ Config setup ################################
@@ -122,7 +123,7 @@ if args.wandb:
                config=args,
                dir=wandb_dir,
                )
-    wandb.run.name = f"v2-1-{args.dataset}"
+    wandb.run.name = f"{args.target_v}-{args.dataset}"
 
 ##############################################################################
 ############################## Start iteration ###############################
@@ -143,7 +144,7 @@ else:
     ## set conditioning rtg to be the goal
     target = reverse_normalized_score(args.dataset, args.target_rtg)
     # target = dataset.normalizer(target, 'rtgs')
-condition = torch.ones((1, 1)).to(args.device) 
+condition = torch.ones((1, 1)).to(args.device) * args.target_v
 # condition[0, -1] = 1
 gamma = dc.critic.gamma
 
@@ -166,7 +167,8 @@ for t in range(env.max_episode_steps):
             observation = state['observation']
 
     if args.increasing_condition:
-        condition = condition * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+        # condition = condition * gamma ** (env.max_episode_steps * 0.5 * ((env.max_episode_steps - t) / env.max_episode_steps))
+        condition = condition * increasing_schedule(t, gamma, env.max_episode_steps)
 
     action = policy.act(observation, condition, target, at_goal)
 

@@ -31,6 +31,7 @@ class GoalPositionControl:
     def __init__(self, ema_model, normalizer, observation_dim, goal_dim, has_object, p_gain=10., d_gain=-1.):
         self.next_waypoint_list = []
         self.ema_model = ema_model
+        self.horizon = ema_model.horizon
         self.normalizer = normalizer
         self.observation_dim = observation_dim
         self.goal_dim = goal_dim
@@ -48,7 +49,7 @@ class GoalPositionControl:
                 normed_state = to_torch(self.normalizer(state, 'observations')).reshape(1, self.observation_dim)
                 normed_target = to_torch(self.normalizer(target, 'observations'))[None, :self.goal_dim]
                 samples = self.ema_model(normed_state, condition, normed_target, self.has_object)
-                self.next_waypoint_list = self.normalizer.unnormalize(to_np(samples)[0, 1:64, :self.observation_dim], 'observations')
+                self.next_waypoint_list = self.normalizer.unnormalize(to_np(samples)[0, 1:self.horizon//2, :self.observation_dim], 'observations')
             # action = self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim] \
             #         + self.next_waypoint_list[0, self.goal_dim:] - state[self.goal_dim:]
             action = self.p_gain * (self.next_waypoint_list[0, :self.goal_dim] - state[:self.goal_dim]) \
