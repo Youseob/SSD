@@ -288,7 +288,7 @@ class DiffuserCritic(object):
                     output["distance"] = np.array(distances).mean()
                 elif 'maze2d' in self.env_name:
                     policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.horizon)
+                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.critic.gamma)
                     output["success_rate"] = np.array(succ_rates).mean()
                     output["returns"] = np.array(undisc_returns).mean()
                     output["scores"] = np.array(scores).mean()

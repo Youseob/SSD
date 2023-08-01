@@ -64,7 +64,7 @@ base = {
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1, 2],
+        'seed': [0, 1, 2, 3, 4],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [1000],
@@ -89,15 +89,15 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        # 'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
+        'target_v': [1.0],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [True],
+        'multi': [False, True],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 4, 5, 6, 7, 8, 9, 10], 
+        'epi_seed': list(range(10)), 
         'wandb': [True],
 
         ## sample_kwargs
@@ -108,13 +108,13 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['position'],
-        'increasing_condition': [False],
+        'increasing_condition': [False, True],
 
         ## serialization
         'loadbase': [None],
         # 'logbase': ['./logs'],
         'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer3'],
+        'prefix': ['eval/test3'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -123,12 +123,12 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [0, 3,4],
+        'seed': [0,1,2],
         # 'conditional': [True],
 
         ## loading
         'diffusion_loadpath': ['f:dc/transformer3_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [499999],
+        'diffusion_epoch': [999999],
 
         'verbose': [False],
         'suffix': ['0'],
@@ -181,23 +181,23 @@ maze2d_umaze_v1 = {
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [128],
         'n_diffusion_steps': [50],
         'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [128],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [300],
         'n_diffusion_steps': [50],
         'max_path_length': [600]
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [300],
         'n_diffusion_steps': [50],
     },
 }
