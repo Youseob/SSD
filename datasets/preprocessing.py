@@ -133,6 +133,31 @@ def maze2d_set_terminals(env):
 
     return _fn
 
+# def kitchen_set_terminals(env):
+#     env = load_environment(env) if type(env) == str else env
+#     threshold = 0.3
+    
+#     def _fn(dataset):
+#         observations = dataset['observations'][..., :30]
+#         goals = dataset['observations'][..., 30:]
+        
+#         dataset['rtgs'] = np.zeros_like(dataset['rewards'])
+#         start = 0
+#         for i in range(len(dataset['observations'])):
+#             if dataset['timeouts'][i] or dataset['terminals'][i]:
+#                 rewards = dataset['rewards'][start:i]
+#                 rtg = discount_cumsum(rewards)
+#                 dataset['rtgs'][start:i] = rtg
+#                 start = i
+#         rewards = dataset['rewards'][start:]
+#         rtg = discount_cumsum(rewards)
+#         dataset['rtgs'][start:] = rtg    
+        
+#         pos = observations
+        
+#         dataset['next_observations'] = np.concatenate([observations[1:], observations[-1,None]], 0)
+        
+
 def her_maze2d_set_terminals(env):
     env = load_environment(env) if type(env) == str else env
     threshold = 0.5

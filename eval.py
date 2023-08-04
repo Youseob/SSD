@@ -168,7 +168,7 @@ for t in range(env.max_episode_steps):
 
     if args.increasing_condition:
         # condition = condition * gamma ** (env.max_episode_steps * 0.5 * ((env.max_episode_steps - t) / env.max_episode_steps))
-        condition = condition * increasing_schedule(t, gamma, env.max_episode_steps)
+        condition = condition * increasing_schedule(t, gamma, horizon, env.max_episode_steps)
 
     action = policy.act(observation, condition, target, at_goal)
 

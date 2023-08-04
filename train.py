@@ -11,7 +11,7 @@ from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
     dataset: str = 'FetchPickAndPlace-v1'
-    config: str = 'config.maze2d'
+    config: str = 'config.fetch'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -101,9 +101,11 @@ if args.wandb:
     print('Wandb init...')
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
-    wandb.init(project=args.prefix.replace('/', '-'),
+    wandb.init(project='0727-FetchSlide-v1',
+        # project=args.prefix.replace('/', '-'),
                entity='aaai2024',
                config=args,
+               group='H16_T50_control-fetch',
                dir=wandb_dir,
                )
     wandb.run.name = f"{args.dataset}"

@@ -64,7 +64,7 @@ base = {
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1, 2, 3, 4],
+        'seed': [2,3],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [1000],
@@ -89,12 +89,12 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_v': [1.0],
+        'target_v': [1.0, 0.8, 0.4, 0.2, 0.1, 0.05, 0.025],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [False, True],
+        'multi': [True, False],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': list(range(10)), 
@@ -108,13 +108,13 @@ base = {
         'n_initial_steps': [1],
         'update_policy_every': [2],
         'control': ['position'],
-        'increasing_condition': [False, True],
+        'increasing_condition': [False],
 
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer4'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [3,4],
+        'seed': [0,1,2],
         # 'conditional': [True],
 
         ## loading
@@ -181,12 +181,12 @@ maze2d_umaze_v1 = {
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [128],
+        'horizon': [32],
         'n_diffusion_steps': [50],
         'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [128],
+        'horizon': [32],
         'n_diffusion_steps': [50],
     },
 }

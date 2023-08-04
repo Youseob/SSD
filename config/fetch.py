@@ -30,7 +30,7 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16, 20], # 4n + 2
+        'horizon': [16], # 4n + 2
         'n_diffusion_steps': [50],
         'action_weight': [10],
         'loss_weights': [None],
@@ -61,7 +61,7 @@ base = {
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0,1,2,3],
+        'seed': [0, 1, 2, 3],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [1000],
