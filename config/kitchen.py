@@ -42,7 +42,7 @@ base = {
         ## dataset
         'termination_penalty': [None],
         'normalizer': ['LimitsNormalizer'],
-        'preprocess_fns': [['fetch_dataset']],
+        'preprocess_fns': [['kitchen_dataset']],
         'use_padding': [False],
         'max_path_length': [50],
         'max_n_episodes': [100000],
@@ -81,7 +81,7 @@ base = {
         'n_samples': [10],
         'bucket': [None],
         'device': ['cuda'],
-        'wandb': [False],
+        'wandb': [True],
     },
     
     'evaluate': {

@@ -89,12 +89,12 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_v': [1.0, 0.8, 0.4, 0.2, 0.1, 0.05, 0.025],
+        'target_v': [0.2],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [True, False],
+        'multi': [False],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': list(range(10)), 
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [0,1,2],
+        'seed': [1],
         # 'conditional': [True],
 
         ## loading

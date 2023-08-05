@@ -133,29 +133,65 @@ def maze2d_set_terminals(env):
 
     return _fn
 
-# def kitchen_set_terminals(env):
-#     env = load_environment(env) if type(env) == str else env
-#     threshold = 0.3
+
+#---------------------- Kitchen ------------------------#
+
+OBS_ELEMENT_INDICES = [
+    [11, 12],  # Bottom burners.
+    [15, 16],  # Top burners.
+    [17, 18],  # Light switch.
+    [19],  # Slide.
+    [20, 21],  # Hinge.
+    [22],  # Microwave.
+    [23, 24, 25, 26, 27, 28, 29],  # Kettle.
+]
+
+def kitchen_dataset(env):
+    env = load_environment(env) if type(env) == str else env
+    threshold = 0.3
+
+    def check_tasks_completed(observations):
+        '''
+            observations: [N x 60]
+        '''
+        
+        obj_qp = observations[:, 9:30]
+        goal = observations[:, 30:]
+        
+        tasks_completed = {}
+        for element in env.tasks_to_complete:
+            element_idx = OBS_ELEMENT_INDICES[element]
+            distance = np.linalg.norm(obj_qp[..., element_idx-9] - goal[element_idx])
+            if distance < threshold:
+                tasks_completed.append(element)
+                
+        return tasks_completed
+        
     
-#     def _fn(dataset):
-#         observations = dataset['observations'][..., :30]
-#         goals = dataset['observations'][..., 30:]
+    def _fn(dataset):
+        observations = dataset['observations']
         
-#         dataset['rtgs'] = np.zeros_like(dataset['rewards'])
-#         start = 0
-#         for i in range(len(dataset['observations'])):
-#             if dataset['timeouts'][i] or dataset['terminals'][i]:
-#                 rewards = dataset['rewards'][start:i]
-#                 rtg = discount_cumsum(rewards)
-#                 dataset['rtgs'][start:i] = rtg
-#                 start = i
-#         rewards = dataset['rewards'][start:]
-#         rtg = discount_cumsum(rewards)
-#         dataset['rtgs'][start:] = rtg    
+        goals = dataset['observations'][..., 30:]
         
-#         pos = observations
+        dataset['rtgs'] = np.zeros_like(dataset['rewards'])
+        start = 0
+        for i in range(len(dataset['observations'])):
+            if dataset['timeouts'][i] or dataset['terminals'][i]:
+                rewards = dataset['rewards'][start:i]
+                rtg = discount_cumsum(rewards)
+                dataset['rtgs'][start:i] = rtg
+                start = i
+        rewards = dataset['rewards'][start:]
+        rtg = discount_cumsum(rewards)
+        dataset['rtgs'][start:] = rtg    
         
-#         dataset['next_observations'] = np.concatenate([observations[1:], observations[-1,None]], 0)
+        pos = observations
+        
+        dataset['next_observations'] = np.concatenate([observations[1:], observations[-1,None]], 0)
+        
+        return dataset
+        
+    return _fn
         
 
 def her_maze2d_set_terminals(env):
