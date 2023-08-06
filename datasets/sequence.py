@@ -9,7 +9,7 @@ from .preprocessing import get_preprocess_fn
 from .d4rl import load_environment, sequence_dataset
 from .normalization import DatasetNormalizer
 from .buffer import ReplayBuffer
-
+from d4rl import kitchen
 
 Batch = namedtuple('Batch', 'trajectories rtgs goals')
 ValueBatch = namedtuple('ValueBatch', 'trajectories rtgs values')
@@ -90,7 +90,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         # shapes = {key: val.shape for key, val in self.fields.items()}
         # print(f'[ datasets/mujoco ] Dataset fields: {shapes}')
 
-    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'rtgs', 'goals']):
+    def normalize(self, keys=['observations', 'actions', 'next_observations', 'rewards', 'goals']):
         '''
             normalize fields that will be predicted by the diffusion model
         '''
@@ -140,11 +140,11 @@ class SequenceDataset(torch.utils.data.Dataset):
             rewards = self.fields.normed_rewards[path_ind, start:end]
             goals = self.fields.normed_rtgs[path_ind, start]
         
-        rtgs = self.fields.normed_rtgs[path_ind, start:end]
+        # rtgs = self.fields.normed_rtgs[path_ind, start:end]
         # trajectories = np.concatenate([observations, actions, next_observations, rewards, terminals], axis=-1)
         # trajectories = np.concatenate([observations, actions, rewards, terminals], axis=-1)
         trajectories = np.concatenate([observations, actions], axis=-1)
-        batch = Batch(trajectories, rtgs, goals)
+        batch = Batch(trajectories, rewards, goals)
         return batch
 
 """

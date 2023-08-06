@@ -10,8 +10,8 @@ from dc.dc import DiffuserCritic
 from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'FetchPickAndPlace-v1'
-    config: str = 'config.fetch'
+    dataset: str = 'kitchen-mixed-v0'
+    config: str = 'config.kitchen'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()
@@ -28,6 +28,9 @@ if 'maze2d' in args.dataset:
 elif 'Fetch' in args.dataset:
     goal_dim = 3
     renderer = utils.FetchRenderer(env=args.dataset)
+elif 'kitchen' in args.dataset:
+    goal_dim = 30
+    renderer = None
 else:
     goal_dim = 1
     renderer = utils.MuJoCoRenderer(env=args.dataset)
@@ -40,6 +43,7 @@ dataset = SequenceDataset(
     max_path_length=args.max_path_length,
     max_n_episodes=args.max_n_episodes,
     use_padding=args.use_padding,
+    termination_penalty=args.termination_penalty,
     seed=args.seed,
 )
 
@@ -101,11 +105,10 @@ if args.wandb:
     print('Wandb init...')
     wandb_dir = '/tmp/sykim/wandb'
     os.makedirs(wandb_dir, exist_ok=True)
-    wandb.init(project='0727-FetchSlide-v1',
-        # project=args.prefix.replace('/', '-'),
+    wandb.init(project=args.prefix.replace('/', '-'),
                entity='aaai2024',
                config=args,
-               group='H16_T50_control-fetch',
+            #    group='H16_T50_control-fetch',
                dir=wandb_dir,
                )
     wandb.run.name = f"{args.dataset}"

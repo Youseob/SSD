@@ -30,9 +30,9 @@ base = {
 
     'diffusion': {
         ## model
-        'horizon': [16], # 4n + 2
+        'horizon': [32], # 4n + 2
         'n_diffusion_steps': [50],
-        'action_weight': [10],
+        'action_weight': [[10]*16],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],
@@ -44,7 +44,7 @@ base = {
         'normalizer': ['LimitsNormalizer'],
         'preprocess_fns': [['kitchen_dataset']],
         'use_padding': [False],
-        'max_path_length': [50],
+        'max_path_length': [280],
         'max_n_episodes': [100000],
         
         ## diffuser
@@ -55,8 +55,8 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
@@ -66,7 +66,7 @@ base = {
         'alpha': [1],
         'n_steps_per_epoch': [1000],
         'loss_type': ['l2'],
-        'n_train_steps': [2e6],
+        'n_train_steps': [1e6],
         'warmup_steps': [4e5],
         'batch_size': [256],
         'lr': [2e-4],
@@ -75,7 +75,7 @@ base = {
         # 'save_freq': [5000],
         'sample_freq': [5000],
         'log_freq': [10000],
-        'n_saves': [5],
+        'n_saves': [2],
         'save_parallel': [False],
         'n_reference': [50],
         'n_samples': [10],
@@ -103,14 +103,14 @@ base = {
         'scale_grad_by_std': [True],
         'n_initial_steps': [1],
         'update_policy_every': [2],
-        'control': ['fetch'],
+        'control': ['torque'],
         'increasing_condition': [False],
         
         ## serialization
         'loadbase': [None],
-        'logbase': ['./logs'],
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer1'],
+        # 'logbase': ['./logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/transformer3'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
