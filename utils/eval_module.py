@@ -146,9 +146,8 @@ from utils.helpers import discounted_return
 # at_goal = False
 
 def increasing_schedule(t, gamma, horizon, max_epi_len):
-    # return gamma ** (max_epi_len * 0.1 * ((max_epi_len - t) / max_epi_len))
-    # flag = gamma ** (max_epi_len - t) > 0.1
-    return (1 - gamma ** horizon) * (t / max_epi_len) + gamma ** horizon
+    return gamma ** (horizon * ((max_epi_len - t) / max_epi_len))
+    # return (1 - gamma ** horizon) * (t / max_epi_len) + gamma ** horizon
 
 def main(env, n_episodes, policy, horizon):
     succ_rates = []
@@ -170,7 +169,7 @@ def main(env, n_episodes, policy, horizon):
 
             # if args.increasing_condition:
             #     condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
-            condition = torch.ones((1, 1)).to('cuda')
+            condition = torch.ones((1, 1)).to('cuda') 
             action = policy.act(observation, condition, state['desired_goal'], at_goal)
 
             # # Store rollout for rendering

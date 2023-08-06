@@ -133,6 +133,110 @@ def maze2d_set_terminals(env):
 
     return _fn
 
+
+#---------------------- Kitchen ------------------------#
+
+OBS_ELEMENT_INDICES = {
+    'bottom burner': np.array([11, 12]),
+    'top burner': np.array([15, 16]),
+    'light switch': np.array([17, 18]),
+    'slide cabinet': np.array([19]),
+    'hinge cabinet': np.array([20, 21]),
+    'microwave': np.array([22]),
+    'kettle': np.array([23, 24, 25, 26, 27, 28, 29]),
+    }
+OBS_ELEMENT_GOALS = {
+    'bottom burner': np.array([-0.88, -0.01]),
+    'top burner': np.array([-0.92, -0.01]),
+    'light switch': np.array([-0.69, -0.05]),
+    'slide cabinet': np.array([0.37]),
+    'hinge cabinet': np.array([0., 1.45]),
+    'microwave': np.array([-0.75]),
+    'kettle': np.array([-0.23, 0.75, 1.62, 0.99, 0., 0., -0.06]),
+    }
+BONUS_THRESH = 0.3
+
+def kitchen_dataset(env):
+    env = load_environment(env) if type(env) == str else env
+    threshold = 0.3
+
+    def check_tasks_completed(observations):
+        '''
+            observations: [N x 60]
+        '''
+        N = len(observations)
+        obj_qp = observations[:, 9:30]
+        goal = observations[:, 30:]
+        
+        tasks_completed = [[].copy() for _ in range(N)]
+        for element in env.tasks_to_complete:
+            element_idx = OBS_ELEMENT_INDICES[element]
+            distance = ((obj_qp[..., element_idx-9] - goal[..., element_idx]) ** 2).sum(axis=1) ** 0.5
+            for i in np.where(distance < threshold)[0]:
+                tasks_completed[i].append(element)
+                
+        return tasks_completed
+        
+    
+    def _fn(dataset):
+        # For path lengths
+        N = len(dataset['rewards'])
+        subends = np.where(dataset['rewards'][1:] - dataset['rewards'][:-1] != 0)[0]
+        subpath_lengths = np.concatenate([subends, [N-1]]) - np.concatenate([[-1], subends])
+        n, l = len(subpath_lengths), subpath_lengths.max(), 
+        print(
+            f'[ utils/preprocessing ] Segmented {env.name} | {len(subpath_lengths)} paths | '
+            f'min length: {subpath_lengths.min()} | max length: {subpath_lengths.max()}'
+        )
+        
+        # For next_observations
+        observations_split = np.split(dataset['observations'][..., :30], subends)
+        for i, obs in enumerate(observations_split):
+            if len(obs) > 1:
+                observations_split[i] = np.pad(obs[1:], mode='edge', pad_width=((0,1), (0,0))).copy()
+            else:
+                observations_split[i] = obs
+                
+        # For timeouts which means endpoint of each subpath.
+        timeouts = np.zeros_like(dataset['timeouts'])
+        timeouts[subends] = 1
+        
+        # For subgoals which means goal of each timestep, among sequence of the goals. 
+        tasks_completed = check_tasks_completed(dataset['observations'])
+        subgoals = np.zeros_like(dataset['observations'][..., :30])
+        subepi_start = 0
+        for i in np.where(timeouts)[0] + 1:
+            tasks_after = tasks_completed[i]
+            tasks_before = tasks_completed[i-1]
+            tasks_added = list(set(tasks_after) - set(tasks_before))
+            tasks_remain = set(env.tasks_to_complete) - set(tasks_after)
+            if len(tasks_added) > 0:
+                subgoals[subepi_start:i, OBS_ELEMENT_INDICES[tasks_added[0]]] = OBS_ELEMENT_GOALS[tasks_added[0]]
+            else:
+                for task in tasks_remain:
+                    subgoals[subepi_start:i, OBS_ELEMENT_INDICES[task]] += OBS_ELEMENT_GOALS[task]
+            subepi_start = i
+        if len(tasks_added) > 0:
+            subgoals[subepi_start:, OBS_ELEMENT_INDICES[tasks_added[0]]] = OBS_ELEMENT_GOALS[tasks_added[0]]
+        else:
+            for task in tasks_remain:
+                subgoals[subepi_start:, OBS_ELEMENT_INDICES[task]] += OBS_ELEMENT_GOALS[task]
+        
+        
+        dataset_new = {'observations': dataset['observations'][..., :30].copy(), 
+                       'next_observations': np.concatenate(observations_split, axis=0),
+                       'actions': dataset['actions'].copy(), 
+                       'rewards': dataset['rewards'].copy(), 
+                       'goals': subgoals,
+                       'achieved_goals': dataset['observations'][..., :30].copy(),
+                       'terminals': dataset['terminals'].copy(),
+                       'timeouts': timeouts}  
+        
+        return dataset_new
+        
+    return _fn
+        
+
 def her_maze2d_set_terminals(env):
     env = load_environment(env) if type(env) == str else env
     threshold = 0.5

@@ -158,10 +158,10 @@ class DiffuserCritic(object):
             ## Sample random goal which will be used to relabel.
             batch = next(self.dataloader_train)
             batch = batch_to_device(batch)
-            if 'Fetch' in self.env_name or 'maze' in self.env_name:
-                goal_rand = batch.goals[:, 0].clone()
-            else:
-                goal_rand = batch.rtgs[:, 0].clone()
+            # if 'Fetch' in self.env_name or 'maze' in self.env_name:
+            goal_rand = batch.goals[:, 0].clone()
+            # else:
+            #     goal_rand = batch.rtgs[:, 0].clone()
                 
             ## Calculate critic loss and step.
             batch = next(self.dataloader_train)

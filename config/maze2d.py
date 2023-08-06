@@ -58,13 +58,13 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        # 'logbase': ['/ext2/sykim/DC/logs'],
-        'logbase': ['logs'],
+        'logbase': ['/ext2/sykim/DC/logs'],
+        # 'logbase': ['logs'],
         'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
         ## training
-        'seed': [0, 1, 2],
+        'seed': [2,3],
         'maxq': [False],
         'alpha': [1],
         'n_steps_per_epoch': [1000],
@@ -89,15 +89,15 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_v': [1.0],
+        'target_v': [0.2],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'multi': [True],
+        'multi': [False],
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
-        'epi_seed': [0, 1, 2, 4, 5, 6, 7, 8, 9, 10], 
+        'epi_seed': list(range(10)), 
         'wandb': [True],
 
         ## sample_kwargs
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [3,4],
+        'seed': [1],
         # 'conditional': [True],
 
         ## loading
@@ -181,23 +181,23 @@ maze2d_umaze_v1 = {
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [32],
         'n_diffusion_steps': [50],
         'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [32],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [64],
+        'horizon': [300],
         'n_diffusion_steps': [50],
         'max_path_length': [600]
     },
     'evaluate': {
-        'horizon': [64],
+        'horizon': [300],
         'n_diffusion_steps': [50],
     },
 }
