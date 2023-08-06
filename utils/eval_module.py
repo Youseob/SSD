@@ -5,6 +5,7 @@ import os
 import numpy as np
 
 from utils.helpers import discounted_return
+from d4rl.kitchen.kitchen_envs import OBS_ELEMENT_INDICES, OBS_ELEMENT_GOALS
 
 ##############################################################################
 ################################ Config setup ################################
@@ -149,7 +150,7 @@ def increasing_schedule(t, gamma, horizon, max_epi_len):
     return gamma ** (horizon * ((max_epi_len - t) / max_epi_len))
     # return (1 - gamma ** horizon) * (t / max_epi_len) + gamma ** horizon
 
-def main(env, n_episodes, policy, horizon):
+def main(env, n_episodes, policy, target_v):
     succ_rates = []
     undisc_returns = []
     disc_returns = []
@@ -169,7 +170,7 @@ def main(env, n_episodes, policy, horizon):
 
             # if args.increasing_condition:
             #     condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
-            condition = torch.ones((1, 1)).to('cuda') 
+            condition = torch.ones((1, 1)).to('cuda') * target_v
             action = policy.act(observation, condition, state['desired_goal'], at_goal)
 
             # # Store rollout for rendering
@@ -207,7 +208,7 @@ def main(env, n_episodes, policy, horizon):
     return succ_rates, undisc_returns, disc_returns, distances
 
 
-def main_maze(env, n_episodes, policy, gamma):
+def main_maze(env, n_episodes, policy, target_v):
     succ_rates = []
     undisc_returns = []
     scores = []
@@ -221,9 +222,7 @@ def main_maze(env, n_episodes, policy, gamma):
         for t in range(env.max_episode_steps):
             at_goal = np.linalg.norm(state[:2] - target) <= 0.5
             
-            condition = torch.ones((1, 1)).to('cuda') 
-            condition = condition * increasing_schedule(t, gamma, policy.horizon, env.max_episode_steps)
-            # condition = condition * gamma ** (env.max_episode_steps * 0.5 * ((env.max_episode_steps - t) / env.max_episode_steps))
+            condition = torch.ones((1, 1)).to('cuda') * target_v
 
             action = policy.act(state, condition, target, at_goal)
             
@@ -242,6 +241,55 @@ def main_maze(env, n_episodes, policy, gamma):
         scores.append(score)
         distances.append(distance)
     return succ_rates, undisc_returns, scores, distances
+
+
+def main_kitchen(env, n_episodes, policy, target_v):
+    succ_rates = []
+    undisc_returns = []
+    disc_returns = []
+    for _ in range(n_episodes):
+        total_reward = 0
+        rewards = []
+        state = env.reset()
+        at_goal = False
+        tasks_to_complete = list(env.tasks_to_complete)
+        for t in range(env.max_episode_steps):
+            
+            target = np.zeros_like(state[:30])
+            for task in tasks_to_complete:
+                target[OBS_ELEMENT_INDICES[task]] += OBS_ELEMENT_GOALS[task]
+            at_goal = np.linalg.norm(state[:30] - target) <= 0.3
+            observation = state[:30]
+
+            # if args.increasing_condition:
+            #     condition = torch.ones((1, horizon, 1)).to(args.device) * gamma ** (1 - ((t + horizon) / env.max_episode_steps))
+            condition = torch.ones((1, 1)).to('cuda') * target_v
+            action = policy.act(observation, condition, target, at_goal)
+            
+            # Step
+            next_state, reward, done, _ = env.step(action)
+            
+            total_reward += reward
+            rewards.append(reward)
+            dis_return, total_reward = discounted_return(np.array(rewards), 0.98)
+            output = {'reward': reward, \
+                    'total_reward': total_reward, \
+                    'discounted_return': dis_return}
+
+            
+            # output_str = ' | '.join([f'{k}: {v:.4f}' for k, v in output.items()])
+            # print(
+            #     f't: {t} | {output_str} |'
+            #     f'{action}'
+            # )
+            
+            if done:
+                break
+            state = next_state
+        succ_rates.append(at_goal)
+        undisc_returns.append(total_reward)
+        disc_returns.append(dis_return)
+    return succ_rates, undisc_returns, disc_returns, None
 
 # Rendering
 # if 'Fetch' in args.dataset:

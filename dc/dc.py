@@ -10,7 +10,7 @@ import einops
 from utils.arrays import batch_to_device, to_np, to_torch, to_device, apply_dict
 from utils.helpers import EMA, soft_copy_nn_module, copy_nn_module, minuscosine
 from utils.timer import Timer
-from utils.eval_module import main, main_maze
+from utils.eval_module import main, main_maze, main_kitchen
 from dc.policy import *
 from .temporal import TemporalUnetConditional, TemporalUnetTransformer
 from .model import MLP
@@ -204,7 +204,10 @@ class DiffuserCritic(object):
                     indexes:                From (current_t) to (current_t + horizon).
                     trajectories_padded:    Pad with achieved goal, with shape (b 2h d).
                 '''
-                ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim] if self.has_object else batch.trajectories[:, -1, :self.goal_dim]
+                if 'kitchen' in self.env_name:
+                    ag = batch.trajectories[:, -1, :self.observation_dim] 
+                else:
+                    ag = batch.trajectories[:, -1, self.goal_dim:2*self.goal_dim] if self.has_object else batch.trajectories[:, -1, :self.goal_dim]
                 dg_rpt = batch.goals
                 ag_rpt = einops.repeat(ag, 'b d -> b h d', h=self.horizon)
                 goals = torch.cat([ag, dg_rpt[:, 0]], 0)
@@ -281,18 +284,24 @@ class DiffuserCritic(object):
                         "qloss2": qloss2, }
                 if 'Fetch' in self.env_name:
                     policy = FetchControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, disc_returns, distances = main(env, 10, policy, self.horizon)
+                    succ_rates, undisc_returns, disc_returns, distances = main(env, 10, policy, 1.)
                     output["success_rate"] = np.array(succ_rates).mean()
                     output["returns"] = np.array(undisc_returns).mean()
                     output["discounted_returns"] = np.array(disc_returns).mean()
                     output["distance"] = np.array(distances).mean()
                 elif 'maze2d' in self.env_name:
                     policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.critic.gamma)
+                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, 1.)
                     output["success_rate"] = np.array(succ_rates).mean()
                     output["returns"] = np.array(undisc_returns).mean()
                     output["scores"] = np.array(scores).mean()
                     output["distance"] = np.array(distances).mean()
+                elif 'kitchen' in self.env_name:
+                    policy = KitchenControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                    succ_rates, undisc_returns, scores, distances = main_kitchen(env, 10, policy, 0.5)
+                    output["success_rate"] = np.array(succ_rates).mean()
+                    output["returns"] = np.array(undisc_returns).mean()
+                    output["scores"] = np.array(scores).mean()
                 
                 print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from utils.arrays import to_torch, to_np
 
-class GoalTorqueControl:
+class KitchenControl:
     def __init__(self, ema_model, normalizer, observation_dim, goal_dim, has_object):
         self.action_list = []
         self.ema_model = ema_model
