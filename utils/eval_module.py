@@ -145,8 +145,10 @@ from utils.helpers import discounted_return
 # rewards = []
 # at_goal = False
 
-def increasing_schedule(t, gamma, max_epi_len):
-    return (1-gamma**t)/(1-gamma**max_epi_len)
+def increasing_schedule(t, gamma, horizon, max_epi_len):
+    # return gamma ** (max_epi_len * 0.1 * ((max_epi_len - t) / max_epi_len))
+    # flag = gamma ** (max_epi_len - t) > 0.1
+    return (1 - gamma ** horizon) * (t / max_epi_len) + gamma ** horizon
 
 def main(env, n_episodes, policy, horizon):
     succ_rates = []
@@ -221,7 +223,7 @@ def main_maze(env, n_episodes, policy, gamma):
             at_goal = np.linalg.norm(state[:2] - target) <= 0.5
             
             condition = torch.ones((1, 1)).to('cuda') 
-            condition = condition * increasing_schedule(t, gamma, env.max_episode_steps)
+            condition = condition * increasing_schedule(t, gamma, policy.horizon, env.max_episode_steps)
             # condition = condition * gamma ** (env.max_episode_steps * 0.5 * ((env.max_episode_steps - t) / env.max_episode_steps))
 
             action = policy.act(state, condition, target, at_goal)

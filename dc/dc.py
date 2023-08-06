@@ -286,13 +286,13 @@ class DiffuserCritic(object):
                     output["returns"] = np.array(undisc_returns).mean()
                     output["discounted_returns"] = np.array(disc_returns).mean()
                     output["distance"] = np.array(distances).mean()
-                elif 'maze2d' in self.env_name:
-                    policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.critic.gamma)
-                    output["success_rate"] = np.array(succ_rates).mean()
-                    output["returns"] = np.array(undisc_returns).mean()
-                    output["scores"] = np.array(scores).mean()
-                    output["distance"] = np.array(distances).mean()
+                # elif 'maze2d' in self.env_name:
+                #     policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                #     succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, self.critic.gamma)
+                #     output["success_rate"] = np.array(succ_rates).mean()
+                #     output["returns"] = np.array(undisc_returns).mean()
+                #     output["scores"] = np.array(scores).mean()
+                #     output["distance"] = np.array(distances).mean()
                 
                 print(f'{self.step}: loss_d: {loss_d:8.4f} | loss_q:{loss_q:8.4f} | q:{q.mean():8.4f} | time:{timer()}', flush=True)
 
