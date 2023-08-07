@@ -432,7 +432,10 @@ class HindsightCritic(nn.Module):
                 td_target: cat([values, gamma * next_q], 0)
             '''
             
-            ag = self.unnorm(trajectories[:, :, self.goal_dim:2*self.goal_dim], 'achieved_goals')
+            if 'kitchen' in self.env_name:
+                ag = self.unnorm(trajectories[..., :self.observation_dim], 'achieved_goals')
+            elif 'Fetch' in self.env_name:
+                ag = self.unnorm(trajectories[..., self.goal_dim:2*self.goal_dim], 'achieved_goals')
             dg = self.unnorm(goal_rand, 'goals')
             observation = self.unnorm(trajectories[:, 0, :self.observation_dim], 'observations')
             action = self.unnorm(trajectories[:, 0, self.observation_dim:], 'actions')

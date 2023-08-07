@@ -32,7 +32,7 @@ base = {
         ## model
         'horizon': [32], # 4n + 2
         'n_diffusion_steps': [50],
-        'action_weight': [[10]*16],
+        'action_weight': [[10.]*9],
         'loss_weights': [None],
         'loss_discount': [1],
         'predict_epsilon': [True],

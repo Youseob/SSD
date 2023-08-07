@@ -78,7 +78,7 @@ class GaussianDiffusion(nn.Module):
             weights_dict    : dict
                 { i: c } multiplies dimension i of observation loss by c
         '''
-        self.action_weight = action_weight
+        self.action_weight = torch.tensor(action_weight, dtype=torch.float32)
         dim_weights = torch.ones(self.transition_dim, dtype=torch.float32)
         
         ## set loss coefficients for dimensions of observation
@@ -93,7 +93,7 @@ class GaussianDiffusion(nn.Module):
         loss_weights = dim_weights * discount
         
         ## manually set a0 weight
-        loss_weights[:self.action_dim] = action_weight
+        loss_weights[:self.action_dim] = self.action_weight
         return loss_weights.to(self.device)
     
     @torch.no_grad()
@@ -242,13 +242,17 @@ class GaussianDiffusion(nn.Module):
         x_noisy = self.q_sample(x_start, t, noise)
         # apply conditioning
         x_noisy[:, 0, :self.observation_dim] = state.clone()
+        
         if has_object:
-            # Hindsight goal 
-            x_noisy[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-            x_noisy[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-            # Hindsight gripper
-            x_noisy[:, -1, :self.goal_dim] = goal.clone()
-            x_noisy[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_noisy[:, -1, :self.goal_dim].clone()
+            try:
+                # Hindsight goal 
+                x_noisy[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+                x_noisy[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+                # Hindsight gripper
+                x_noisy[:, -1, :self.goal_dim] = goal.clone()
+                x_noisy[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x_noisy[:, -1, :self.goal_dim].clone()
+            except:
+                pass
         else:
             x_noisy[:, -1, :self.goal_dim] = goal.clone()
         
