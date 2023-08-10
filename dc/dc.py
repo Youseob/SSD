@@ -289,13 +289,13 @@ class DiffuserCritic(object):
                     output["returns"] = np.array(undisc_returns).mean()
                     output["discounted_returns"] = np.array(disc_returns).mean()
                     output["distance"] = np.array(distances).mean()
-                elif 'maze2d' in self.env_name:
-                    policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
-                    succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, 1.)
-                    output["success_rate"] = np.array(succ_rates).mean()
-                    output["returns"] = np.array(undisc_returns).mean()
-                    output["scores"] = np.array(scores).mean()
-                    output["distance"] = np.array(distances).mean()
+                # elif 'maze2d' in self.env_name:
+                #     policy = GoalPositionControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
+                #     succ_rates, undisc_returns, scores, distances = main_maze(env, 10, policy, 1.)
+                #     output["success_rate"] = np.array(succ_rates).mean()
+                #     output["returns"] = np.array(undisc_returns).mean()
+                #     output["scores"] = np.array(scores).mean()
+                #     output["distance"] = np.array(distances).mean()
                 elif 'kitchen' in self.env_name:
                     policy = KitchenControl(self.ema_model, self.dataset.normalizer, self.observation_dim, self.goal_dim, self.has_object)
                     succ_rates, undisc_returns, scores, distances = main_kitchen(env, 10, policy, 0.5)

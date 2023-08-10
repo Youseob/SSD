@@ -86,7 +86,7 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        # 'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
+        'target_v': [0.0, 0.8, 1.0, 1.2, 1.4],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
@@ -110,7 +110,7 @@ base = {
         'loadbase': [None],
         'logbase': ['./logs'],
         # 'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer1'],
+        'prefix': ['eval/final'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
@@ -121,8 +121,8 @@ base = {
         'seed': [0, 1,2,3],
 
         ## loading
-        'diffusion_loadpath': ['f:v2_dc/transformer1_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [799999],
+        'diffusion_loadpath': ['f:dc/transformer3_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [1199999],
 
         'verbose': [False],
         'suffix': ['0'],

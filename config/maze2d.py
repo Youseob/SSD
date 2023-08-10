@@ -58,8 +58,8 @@ base = {
         'clip_denoised': [True],
 
         ## serialization
-        'logbase': ['/ext2/sykim/DC/logs'],
-        # 'logbase': ['logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'logbase': ['logs'],
         'prefix': ['dc/transformer3'],
         'exp_name': [watch(diffusion_args_to_watch)],
 
@@ -89,7 +89,7 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        'target_v': [0.2],
+        'target_v': [0.025],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [1],
+        'seed': [0],
         # 'conditional': [True],
 
         ## loading
@@ -181,23 +181,23 @@ maze2d_umaze_v1 = {
 }
 maze2d_medium_v1 = {
     'diffusion': {
-        'horizon': [32],
+        'horizon': [64],
         'n_diffusion_steps': [50],
         'max_path_length': [500]
     },
     'evaluate': {
-        'horizon': [32],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }
 maze2d_large_v1 = {
     'diffusion': {
-        'horizon': [300],
+        'horizon': [64],
         'n_diffusion_steps': [50],
         'max_path_length': [600]
     },
     'evaluate': {
-        'horizon': [300],
+        'horizon': [64],
         'n_diffusion_steps': [50],
     },
 }

@@ -20,8 +20,8 @@ from utils.eval_module import increasing_schedule
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-umaze-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'maze2d-medium-v1'
+    config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
 iterparser = IterParser()
@@ -106,6 +106,8 @@ if args.control == 'kitchen':
     policy = KitchenControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
+elif args.control == 'full':
+    policy = FullGoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'fetch':

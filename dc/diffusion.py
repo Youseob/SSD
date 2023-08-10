@@ -181,12 +181,15 @@ class GaussianDiffusion(nn.Module):
         # apply conditioning
         x[:, 0, :self.observation_dim] = state.clone()
         if has_object:
-            # Hindsight goal 
-            x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-            x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-            # Hindsight gripper
-            x[:, -1, :self.goal_dim] = goal.clone()
-            x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+            try:
+                # Hindsight goal 
+                x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+                x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+                # Hindsight gripper
+                x[:, -1, :self.goal_dim] = goal.clone()
+                x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+            except:
+                pass
         else:
             x[:, -1, :self.goal_dim] = goal.clone()
         
@@ -199,12 +202,15 @@ class GaussianDiffusion(nn.Module):
             # apply conditioning
             x[:, 0, :self.observation_dim] = state.clone()
             if has_object:
-                # Hindsight goal 
-                x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
-                x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
-                # Hindsight gripper
-                x[:, -1, :self.goal_dim] = goal.clone()
-                x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+                try:
+                    # Hindsight goal 
+                    x[:, -2, self.goal_dim:2*self.goal_dim] = goal.clone()
+                    x[:, -1, self.goal_dim:2*self.goal_dim] = goal.clone()
+                    # Hindsight gripper
+                    x[:, -1, :self.goal_dim] = goal.clone()
+                    x[:, -1, 2*self.goal_dim:3*self.goal_dim] = goal.clone() - x[:, -1, :self.goal_dim].clone()
+                except:
+                    pass
             else:
                 x[:, -1, :self.goal_dim] = goal.clone()
                         
