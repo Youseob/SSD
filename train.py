@@ -103,7 +103,7 @@ dc = DiffuserCritic(
 # )
 if args.wandb:
     print('Wandb init...')
-    wandb_dir = '/tmp/sykim/wandb'
+    wandb_dir = '/tmp/'
     os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(project=args.prefix.replace('/', '-'),
                entity='aaai2024',

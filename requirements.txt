@@ -35,7 +35,6 @@ crcmod==1.7
 cryptography==40.0.2
 cycler==0.11.0
 Cython==0.29.34
-d4rl @ git+https://github.com/Farama-Foundation/d4rl@f2a05c0d66722499bf8031b094d9af3aea7c372b
 distlib==0.3.6
 dm-control==1.0.12
 dm-env==1.6
@@ -45,6 +44,7 @@ docstring-parser==0.15
 docutils==0.16
 doodad @ git+https://github.com/JannerM/doodad.git@77cdefb9862625bb6f419e66cd502318225dc992
 einops==0.6.1
+Farama-Notifications==0.0.4
 fasteners==0.18
 ffmpeg==1.4
 ffprobe==0.5
@@ -69,6 +69,7 @@ googleapis-common-protos==1.59.0
 grpcio==1.43.0
 gym==0.17.3
 gym-notices==0.0.8
+gymnasium==0.29.0
 h5py==3.8.0
 httplib2==0.22.0
 humanfriendly==8.2
@@ -93,8 +94,6 @@ msal-extensions==0.1.3
 msgpack==1.0.5
 msrest==0.7.1
 msrestazure==0.6.4
-mujoco==2.2.2
--e git+https://github.com/openai/mujoco-py.git@a13903b82f1ab316815e63b3575526005b3b2ae1#egg=mujoco_py
 mypy-extensions==1.0.0
 networkx==3.1
 numpy==1.22.4
