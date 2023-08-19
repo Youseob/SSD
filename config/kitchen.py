@@ -86,12 +86,12 @@ base = {
     
     'evaluate': {
         # 'guide': 'sampling.ValueGuide',
-        # 'target_rtg': [0.0, 0.8, 1.0, 1.2, 1.4],
+        'target_v': [1.0, 0.8, 1.0, 1.2, 1.4],
         # 'decreasing_target_rtg': [True],
         # 'policy': ['sampling.DDPolicyV2'],
         # 'max_episode_length': [1000],
         'batch_size': [1],
-        'preprocess_fns': [['fetch_dataset']],
+        'preprocess_fns': [['kitchen_dataset']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
         'wandb': [True],
@@ -108,21 +108,21 @@ base = {
         
         ## serialization
         'loadbase': [None],
-        # 'logbase': ['./logs'],
-        'logbase': ['/ext2/sykim/DC/logs'],
-        'prefix': ['eval/transformer3'],
+        'logbase': ['./logs'],
+        # 'logbase': ['/ext2/sykim/DC/logs'],
+        'prefix': ['eval/kitchen'],
         'exp_name': [watch(eval_args_to_watch)],
         'vis_freq': [10],
         'max_render': [8],
 
         ## diffusion model
-        'horizon': [16], #None,
+        'horizon': [32], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1,2,3],
+        'seed': [5],
 
         ## loading
-        'diffusion_loadpath': ['f:v2_dc/transformer1_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [799999],
+        'diffusion_loadpath': ['f:dc/transformer3_H{horizon}_T{n_diffusion_steps}_s{seed}'],
+        'diffusion_epoch': [499999],
 
         'verbose': [False],
         'suffix': ['0'],

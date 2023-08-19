@@ -20,7 +20,7 @@ from utils.eval_module import increasing_schedule
 ##############################################################################
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze2d-medium-v1'
+    dataset: str = 'FetchSlide-v1'
     config: str = 'config.fetch'
     experiment: str = 'evaluate'
 
@@ -37,7 +37,7 @@ args = Parser().parse_args(iterparser)
 ##############################################################################
 
 env = datasets.load_environment(args.dataset)
-# env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
+env = wrappers.Monitor(env, f'{args.logbase}/{args.dataset}/{args.exp_name}', force=True)
 # env.seed(args.epi_seed)
 horizon = args.horizon
 
@@ -106,8 +106,6 @@ if args.control == 'kitchen':
     policy = KitchenControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
-elif args.control == 'full':
-    policy = FullGoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'fetch':
@@ -240,7 +238,7 @@ if 'Fetch' in args.dataset:
     success = (reward == 1)
     print('success:', success)
     renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout_sim)
-    # env.close()
+    env.close()
 # else:
     # renderer.composite(f'{args.logbase}/{args.dataset}/{args.exp_name}/rollout.png', rollout)
     

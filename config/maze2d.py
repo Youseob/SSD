@@ -98,7 +98,7 @@ base = {
         # 'preprocess_fns': [['maze2d_set_terminals']],
         'device': ['cuda'],
         'epi_seed': list(range(10)), 
-        'wandb': [True],
+        'wandb': [False],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -123,7 +123,7 @@ base = {
         'horizon': [128], #None,
         'n_diffusion_steps': [100],
         # 'maxq': [False],
-        'seed': [0],
+        'seed': [3],
         # 'conditional': [True],
 
         ## loading

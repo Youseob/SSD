@@ -10,8 +10,8 @@ from dc.dc import DiffuserCritic
 from dc.dd import DecisionDiffuser
 
 class IterParser(utils.HparamEnv):
-    dataset: str = 'maze-medium-v1'
-    config: str = 'config.maze2d'
+    dataset: str = 'FetchReach-v1'
+    config: str = 'config.fetch'
     experiment: str = 'diffusion'
 
 iterparser = IterParser()

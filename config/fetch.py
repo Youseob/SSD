@@ -94,7 +94,7 @@ base = {
         'preprocess_fns': [['fetch_dataset']],
         'device': ['cuda'],
         'epi_seed': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
-        'wandb': [True],
+        'wandb': [False],
 
         ## sample_kwargs
         'n_guide_steps': [2],
@@ -118,11 +118,11 @@ base = {
         ## diffusion model
         'horizon': [16], #None,
         'n_diffusion_steps': [50],
-        'seed': [0, 1,2,3],
+        'seed': [6, 1,2,3],
 
         ## loading
         'diffusion_loadpath': ['f:dc/transformer3_H{horizon}_T{n_diffusion_steps}_s{seed}'],
-        'diffusion_epoch': [1199999],
+        'diffusion_epoch': [799999],
 
         'verbose': [False],
         'suffix': ['0'],
