@@ -24,5 +24,15 @@ conda activate ENV_NAME
 pip install -r requirements.txt
 ```
 
+## Train
+```
+python train.py
+```
+
+## Evaluation
+```
+python eval.py
+```
+
 ## Acknowledgements
 This repository is based on Michael Janner's [diffuser](https://github.com/jannerm/diffuser) repo. 
