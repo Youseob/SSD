@@ -102,9 +102,7 @@ try:
 except:
     has_object = False
     
-if args.control == 'kitchen':
-    policy = KitchenControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
-elif args.control == 'position':
+if args.control == 'position':
     policy = GoalPositionControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
 elif args.control == 'every':
     policy = SampleEveryControl(dc.ema_model, dataset.normalizer, observation_dim, goal_dim, has_object)
