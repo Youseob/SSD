@@ -4,6 +4,7 @@ wandb/
 
 *.sif
 *.pkl
+*.png
 
 fuse.cfg
 
